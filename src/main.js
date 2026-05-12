@@ -25,6 +25,19 @@ import { searchCatalog, getAllCatalog } from "./services/metadataService.js";
 const map = new MapController("viewDiv");
 const sidebar = document.getElementById("sidebar");
 const app = document.getElementById("app");
+const splashOverlay = document.getElementById("splashOverlay");
+if (splashOverlay) {
+  const hideSplash = () => {
+    splashOverlay.classList.add("hidden");
+    splashOverlay.setAttribute("aria-hidden", "true");
+  };
+  splashOverlay
+    .querySelector(".splash-overlay__close")
+    ?.addEventListener("click", hideSplash);
+  splashOverlay
+    .querySelector(".splash-overlay__enter")
+    ?.addEventListener("click", hideSplash);
+}
 
 // Set custom attribution
 map.view.when(() => {
@@ -249,6 +262,11 @@ catalogContainer.className = "sidebar__list";
 const activeContainer = document.createElement("div");
 activeContainer.id = "activeContainer";
 activeContainer.className = "sidebar__layer-list hidden";
+const activeTablesContainer = document.createElement("div");
+activeTablesContainer.id = "activeTablesContainer";
+activeTablesContainer.className = "sidebar__layer-list hidden";
+const activeTablesHeader = document.createElement("div");
+
 
 const activeTablesHeader = document.createElement("div");
 activeTablesHeader.className =
@@ -467,25 +485,6 @@ shareButton.addEventListener("click", async () => {
     alert("Link copied to clipboard.");
   } else {
     prompt("Copy this app URL:", url);
-  }
-});
-
-window.addEventListener("load", () => {
-  const splashOverlay = document.getElementById("splashOverlay");
-  if (splashOverlay) {
-    const closeButton = splashOverlay.querySelector(".splash-overlay__close");
-    const enterButton = splashOverlay.querySelector(".splash-overlay__enter");
-
-    const hideSplash = () => {
-      splashOverlay.style.display = "none";
-    };
-
-    if (closeButton) {
-      closeButton.addEventListener("click", hideSplash);
-    }
-    if (enterButton) {
-      enterButton.addEventListener("click", hideSplash);
-    }
   }
 });
 
@@ -818,7 +817,8 @@ function clearAllLayers() {
 
 function handleToggleVisibility(meta) {
   const key = getDatasetKey(meta);
-  const item = activeLayers.find(item => getDatasetKey(item.meta) === key);  if (!item) {
+  const item = activeLayers.find((item) => getDatasetKey(item.meta) === key);
+  if (!item) {
     return;
   }
 
@@ -840,7 +840,7 @@ function getDatasetKey(meta = {}) {
 
 function isLayerActive(meta) {
   const key = getDatasetKey(meta);
-  return activeLayers.some(item => getDatasetKey(item.meta) === key);
+  return activeLayers.some((item) => getDatasetKey(item.meta) === key);
 }
 
 function getLayerId(meta) {
