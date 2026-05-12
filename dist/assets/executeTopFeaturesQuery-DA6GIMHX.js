@@ -1,1 +1,0 @@
-import{e3 as s,dB as i}from"./index-DWMAirJH.js";import{p}from"./queryTopFeatures-CLlfuHMT.js";import n from"./TopFeaturesQuery--T_0vOD3.js";async function x(r,o,t,a){const e=s(r),m={...a},{data:f}=await p(e,n.from(o),t,m);return i.fromJSON(f)}export{x as executeTopFeaturesQuery};
