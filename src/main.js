@@ -49,28 +49,34 @@ let tableState = {
   visible: false,
   loaded: false,
   columns: [],
-  rows: []
+  rows: [],
 };
 
 function getUniqueItems(field, delimiter = ",") {
-  return [...new Set(catalogData.flatMap(item => {
-    const value = item[field] || "";
-    return value
-      .toString()
-      .split(delimiter)
-      .map(part => part.trim())
-      .filter(Boolean);
-  }))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  return [
+    ...new Set(
+      catalogData.flatMap((item) => {
+        const value = item[field] || "";
+        return value
+          .toString()
+          .split(delimiter)
+          .map((part) => part.trim())
+          .filter(Boolean);
+      }),
+    ),
+  ].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
 }
 
 function formatCategoryLabel(category) {
-  return category.replace(/\/Categories\//g, "").replace(/\//g, " / ").trim();
+  return category
+    .replace(/\/Categories\//g, "")
+    .replace(/\//g, " / ")
+    .trim();
 }
 
 const categories = getUniqueItems("categories");
 const tags = getUniqueItems("tags");
 const sources = getUniqueItems("source");
-
 
 const header = document.createElement("section");
 header.className = "sidebar__header";
@@ -84,8 +90,7 @@ header.innerHTML = `
   </div>
   <div class="sidebar__toolbar">
     <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info">ℹ</button>
-    <a href="https://github.com/benjiantolin" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub" target="_blank" rel="noopener">🐙</a>
-    <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener">💼</a>
+    <a href="https://github.com/benjiantolin/seattle-geodata-explorer" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub Repository" target="_blank" rel="noopener">🐙</a>    <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener">💼</a>
     <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share">⤴</button>
   </div>
 `;
@@ -139,10 +144,14 @@ filterRow.appendChild(typeFilterSelect);
 
 const categoryFilterSelect = document.createElement("select");
 categoryFilterSelect.className = "sidebar__filter";
-categoryFilterSelect.innerHTML = [`
+categoryFilterSelect.innerHTML = [
+  `
   <option value="">All categories</option>
 `,
-  ...categories.map(category => `<option value="${category}">${formatCategoryLabel(category)}</option>`)
+  ...categories.map(
+    (category) =>
+      `<option value="${category}">${formatCategoryLabel(category)}</option>`,
+  ),
 ].join("");
 categoryFilterSelect.addEventListener("change", (event) => {
   filterCategory = event.target.value;
@@ -152,10 +161,11 @@ filterRow.appendChild(categoryFilterSelect);
 
 const sourceFilterSelect = document.createElement("select");
 sourceFilterSelect.className = "sidebar__filter";
-sourceFilterSelect.innerHTML = [`
+sourceFilterSelect.innerHTML = [
+  `
   <option value="">All sources</option>
 `,
-  ...sources.map(source => `<option value="${source}">${source}</option>`)
+  ...sources.map((source) => `<option value="${source}">${source}</option>`),
 ].join("");
 sourceFilterSelect.addEventListener("change", (event) => {
   filterSource = event.target.value;
@@ -241,7 +251,8 @@ activeContainer.id = "activeContainer";
 activeContainer.className = "sidebar__layer-list hidden";
 
 const activeTablesHeader = document.createElement("div");
-activeTablesHeader.className = "sidebar__section-heading hidden active-tables-header";
+activeTablesHeader.className =
+  "sidebar__section-heading hidden active-tables-header";
 activeTablesHeader.textContent = "Active Tables";
 
 const tablePanel = document.createElement("div");
@@ -261,10 +272,12 @@ tablePanel.innerHTML = `
   <div class="sidebar__table-body"></div>
 `;
 
-tablePanel.querySelector(".sidebar__table-toggle").addEventListener("click", () => {
-  tableState.visible = !tableState.visible;
-  renderTablePanel();
-});
+tablePanel
+  .querySelector(".sidebar__table-toggle")
+  .addEventListener("click", () => {
+    tableState.visible = !tableState.visible;
+    renderTablePanel();
+  });
 
 sidebar.appendChild(header);
 sidebar.appendChild(controls);
@@ -302,19 +315,25 @@ const layerListWidget = new LayerListWidget({
       return;
     }
 
-    item.actionsSections = [[
-      { title: "Zoom to", id: "zoom", className: "esri-icon-zoom-in-magnifying-glass" },
-      { title: "Inspect", id: "inspect", className: "esri-icon-description" },
-      { title: "Remove", id: "remove", className: "esri-icon-trash" }
-    ]];
-  }
+    item.actionsSections = [
+      [
+        {
+          title: "Zoom to",
+          id: "zoom",
+          className: "esri-icon-zoom-in-magnifying-glass",
+        },
+        { title: "Inspect", id: "inspect", className: "esri-icon-description" },
+        { title: "Remove", id: "remove", className: "esri-icon-trash" },
+      ],
+    ];
+  },
 });
 
 const layerListExpand = new Expand({
   view: map.view,
   content: layerListWidget,
   expanded: true,
-  expandTooltip: "Active layer manager"
+  expandTooltip: "Active layer manager",
 });
 
 const mapToolsContainer = document.createElement("div");
@@ -335,15 +354,21 @@ mapToolsContainer.appendChild(measurementContainer);
 mapToolsContainer.appendChild(scaleBarContainer);
 
 const searchWidget = new Search({ view: map.view, container: searchContainer });
-const basemapGallery = new BasemapGallery({ view: map.view, container: basemapContainer });
-const measurement = new Measurement({ view: map.view, container: measurementContainer });
+const basemapGallery = new BasemapGallery({
+  view: map.view,
+  container: basemapContainer,
+});
+const measurement = new Measurement({
+  view: map.view,
+  container: measurementContainer,
+});
 const scaleBar = new ScaleBar({ view: map.view, container: scaleBarContainer });
 
 const toolsExpand = new Expand({
   view: map.view,
   content: mapToolsContainer,
   expanded: false,
-  expandTooltip: "Map tools"
+  expandTooltip: "Map tools",
 });
 
 const legend = new Legend({ view: map.view });
@@ -351,7 +376,7 @@ const legendExpand = new Expand({
   view: map.view,
   content: legend,
   expanded: false,
-  expandTooltip: "Legend"
+  expandTooltip: "Legend",
 });
 
 map.view.ui.add(new Home({ view: map.view }), "top-left");
@@ -369,9 +394,9 @@ let featureTable = new FeatureTable({
       clearSelection: false,
       refreshData: true,
       toggleColumns: true,
-      dataAction: false
-    }
-  }
+      dataAction: false,
+    },
+  },
 });
 
 layerListWidget.on("trigger-action", (event) => {
@@ -386,13 +411,16 @@ layerListWidget.on("trigger-action", (event) => {
 
   if (event.action.id === "inspect") {
     const active = activeLayers.find((entry) => entry.layer.id === layer.id);
-    showInspector({
-      title: active?.meta.title || layer.title || layer.id,
-      owner: active?.meta.owner || "",
-      type: active?.meta.type || layer.type,
-      url: active?.meta.url || "",
-      visible: layer.visible ? "Yes" : "No"
-    }, "Layer Info");
+    showInspector(
+      {
+        title: active?.meta.title || layer.title || layer.id,
+        owner: active?.meta.owner || "",
+        type: active?.meta.type || layer.type,
+        url: active?.meta.url || "",
+        visible: layer.visible ? "Yes" : "No",
+      },
+      "Layer Info",
+    );
   }
 
   if (event.action.id === "remove") {
@@ -404,22 +432,31 @@ layerListWidget.on("trigger-action", (event) => {
 
 const catalogList = new CustomLayerList(catalogContainer, renderCatalogItem);
 const activeList = new CustomLayerList(activeContainer, renderActiveItem);
-const activeTablesList = new CustomLayerList(activeTablesContainer, renderActiveTableItem);
+const activeTablesList = new CustomLayerList(
+  activeTablesContainer,
+  renderActiveTableItem,
+);
 
 renderUI();
 
 const projectInfoButton = header.querySelector("#projectInfoButton");
 projectInfoButton.addEventListener("click", () => {
-  showInspector({
-    "Project": "Seattle GeoData Explorer",
-    "Purpose": "Interactive discovery of Seattle open data services. Built for WAGISA Map Contest.",
-    "Inspiration": "Dev Summit and Seattle Public Utilities Utiliview rebuild.",
-    "Tech": "Vite + ArcGIS SDK for custom web apps with reusable components.",
-    "Data Source": "Single CSV export from data-seattlecitygis.opendata.arcgis.com",
-    "Built With": "GitHub Copilot AI assistance in 3 evenings",
-    "How to use": "Browse, load, manage, and inspect layers. Add a layer to the table on demand.",
-    "Submit by": "May 12, 2026 noon"
-  }, "Project Info");
+  showInspector(
+    {
+      Project: "Seattle GeoData Explorer",
+      Purpose:
+        "Interactive discovery of Seattle open data services. Built for WAGISA Map Contest.",
+      Inspiration: "Dev Summit and Seattle Public Utilities Utiliview rebuild.",
+      Tech: "Vite + ArcGIS SDK for custom web apps with reusable components.",
+      "Data Source":
+        "Single CSV export from data-seattlecitygis.opendata.arcgis.com",
+      "Built With": "GitHub Copilot AI assistance in 3 evenings",
+      "How to use":
+        "Browse, load, manage, and inspect layers. Add a layer to the table on demand.",
+      "Submit by": "May 12, 2026 noon",
+    },
+    "Project Info",
+  );
 });
 
 const shareButton = header.querySelector("#shareButton");
@@ -433,7 +470,7 @@ shareButton.addEventListener("click", async () => {
   }
 });
 
-window.addEventListener('load', () => {
+window.addEventListener("load", () => {
   const splashOverlay = document.getElementById("splashOverlay");
   if (splashOverlay) {
     const closeButton = splashOverlay.querySelector(".splash-overlay__close");
@@ -469,26 +506,29 @@ map.view.on("click", async (event) => {
     actions.push({
       label: "Zoom to feature",
       onClick: () => {
-        map.view.goTo({ target: graphic.geometry }, { duration: 700, easing: "ease-in-out" });
-      }
+        map.view.goTo(
+          { target: graphic.geometry },
+          { duration: 700, easing: "ease-in-out" },
+        );
+      },
     });
   }
 
   if (active) {
     actions.push({
       label: "View in table",
-      onClick: () => prepareTable(active)
+      onClick: () => prepareTable(active),
     });
     actions.push({
       label: "Open layer",
-      onClick: () => scrollToActiveLayer(active.layer.id)
+      onClick: () => scrollToActiveLayer(active.layer.id),
     });
   }
 
   if (active?.meta.url) {
     actions.push({
       label: "Open source",
-      onClick: () => window.open(active.meta.url, "_blank")
+      onClick: () => window.open(active.meta.url, "_blank"),
     });
   }
 
@@ -511,29 +551,39 @@ function updateSummary() {
 function currentCatalog() {
   let results = searchQuery ? searchCatalog(searchQuery) : catalogData;
   if (filterType) {
-    results = results.filter(item => item.type === filterType);
+    results = results.filter((item) => item.type === filterType);
   }
   if (filterCategory) {
-    results = results.filter(item => {
-      const categories = (item.categories || "").split(",").map((value) => value.trim());
+    results = results.filter((item) => {
+      const categories = (item.categories || "")
+        .split(",")
+        .map((value) => value.trim());
       return categories.includes(filterCategory);
     });
   }
   if (filterSource) {
-    results = results.filter(item => item.source === filterSource);
+    results = results.filter((item) => item.source === filterSource);
   }
   if (filterTag) {
     const tagValue = filterTag.toLowerCase().trim();
-    results = results.filter(item => {
-      const tags = (item.tags || "").split(",").map((value) => value.trim().toLowerCase());
+    results = results.filter((item) => {
+      const tags = (item.tags || "")
+        .split(",")
+        .map((value) => value.trim().toLowerCase());
       return tags.some((tag) => tag.includes(tagValue));
     });
   }
   if (filterContentType) {
     if (filterContentType === "layers") {
-      results = results.filter(item => item.type === "Feature Service" || item.type === "Map Service");
+      results = results.filter(
+        (item) =>
+          item.type === "Feature Service" || item.type === "Map Service",
+      );
     } else if (filterContentType === "tables") {
-      results = results.filter(item => item.type !== "Feature Service" && item.type !== "Map Service");
+      results = results.filter(
+        (item) =>
+          item.type !== "Feature Service" && item.type !== "Map Service",
+      );
     }
   }
 
@@ -578,7 +628,10 @@ function renderActiveTables() {
 function switchTab(tabName) {
   activeTab = tabName;
   catalogTab.classList.toggle("sidebar__tab--active", tabName === "catalog");
-  activeTabButton.classList.toggle("sidebar__tab--active", tabName === "active");
+  activeTabButton.classList.toggle(
+    "sidebar__tab--active",
+    tabName === "active",
+  );
   updateTabVisibility();
 }
 
@@ -612,37 +665,46 @@ async function handleAddLayer(meta) {
     activeLayers.push({
       meta,
       layer,
-      visible: true
+      visible: true,
     });
 
     switchTab("active");
     renderUI();
     map.zoomToLayer(layer);
   } catch (error) {
-    showInspector({
-      "Layer": meta.title,
-      "Status": "Unable to load",
-      "Reason": error.message
-    }, "Layer Load Error");
+    showInspector(
+      {
+        Layer: meta.title,
+        Status: "Unable to load",
+        Reason: error.message,
+      },
+      "Layer Load Error",
+    );
   }
 }
 
 function handleTableOnlyService(meta, tables) {
   if (!tables.length) {
-    showInspector({
-      "Layer": meta.title,
-      "Status": "No table data available"
-    }, "Table Service");
+    showInspector(
+      {
+        Layer: meta.title,
+        Status: "No table data available",
+      },
+      "Table Service",
+    );
     return;
   }
 
   if (tables.length === 1) {
     openTableService(meta, tables[0]);
-    showInspector({
-      "Service": meta.title,
-      "Table": tables[0].name,
-      "Status": "Only tabular data available. Table view opened."
-    }, "Tabular Data");
+    showInspector(
+      {
+        Service: meta.title,
+        Table: tables[0].name,
+        Status: "Only tabular data available. Table view opened.",
+      },
+      "Tabular Data",
+    );
     return;
   }
 
@@ -661,19 +723,26 @@ function handleTableOnlyService(meta, tables) {
     `;
     row.querySelector("button").addEventListener("click", () => {
       openTableService(meta, tableInfo);
-      showInspector({
-        "Service": meta.title,
-        "Table": tableInfo.name,
-        "Status": "Table view opened for selected table."
-      }, "Tabular Data");
+      showInspector(
+        {
+          Service: meta.title,
+          Table: tableInfo.name,
+          Status: "Table view opened for selected table.",
+        },
+        "Tabular Data",
+      );
     });
     selector.appendChild(row);
   });
 
-  showInspector({
-    "Service": meta.title,
-    "Status": "This is a table-only FeatureServer. Choose a table to inspect."
-  }, "Table-only Service", selector);
+  showInspector(
+    {
+      Service: meta.title,
+      Status: "This is a table-only FeatureServer. Choose a table to inspect.",
+    },
+    "Table-only Service",
+    selector,
+  );
 }
 
 function openTableService(meta, tableInfo) {
@@ -681,17 +750,17 @@ function openTableService(meta, tableInfo) {
     title: `${meta.title} — ${tableInfo.name}`,
     owner: meta.owner,
     type: meta.type,
-    url: tableInfo.url
+    url: tableInfo.url,
   };
   tableState.layer = new FeatureLayer({
     url: tableInfo.url,
     title: tableInfo.name,
-    outFields: ["*"]
+    outFields: ["*"],
   });
   tableState.visible = true;
 
   // Add to active tables if not already
-  if (!activeTables.some(t => t.url === tableInfo.url)) {
+  if (!activeTables.some((t) => t.url === tableInfo.url)) {
     activeTables.push(tableState.layerMeta);
   }
 
@@ -704,7 +773,10 @@ function openTableService(meta, tableInfo) {
 }
 
 function handleRemoveLayer(meta) {
-  const index = activeLayers.findIndex(item => item.meta.title === meta.title);
+  const key = getDatasetKey(meta);
+  const index = activeLayers.findIndex(
+    (item) => getDatasetKey(item.meta) === key,
+  );
   if (index < 0) {
     return;
   }
@@ -713,26 +785,40 @@ function handleRemoveLayer(meta) {
   map.removeLayer(item.layer.id);
   activeLayers.splice(index, 1);
 
-  if (tableState.layerMeta?.title === meta.title) {
-    tableState = { layerMeta: null, layer: null, visible: false, loaded: false, columns: [], rows: [] };
+  if (getDatasetKey(tableState.layerMeta) === key) {
+    tableState = {
+      layerMeta: null,
+      layer: null,
+      visible: false,
+      loaded: false,
+      columns: [],
+      rows: [],
+    };
   }
 
   renderUI();
 }
 
 function clearAllLayers() {
-  activeLayers.forEach(item => {
+  activeLayers.forEach((item) => {
     map.removeLayer(item.layer.id);
   });
   activeLayers = [];
   activeTables = [];
-  tableState = { layerMeta: null, layer: null, visible: false, loaded: false, columns: [], rows: [] };
+  tableState = {
+    layerMeta: null,
+    layer: null,
+    visible: false,
+    loaded: false,
+    columns: [],
+    rows: [],
+  };
   renderUI();
 }
 
 function handleToggleVisibility(meta) {
-  const item = activeLayers.find(item => item.meta.title === meta.title);
-  if (!item) {
+  const key = getDatasetKey(meta);
+  const item = activeLayers.find(item => getDatasetKey(item.meta) === key);  if (!item) {
     return;
   }
 
@@ -748,12 +834,18 @@ function handleSearch(query) {
   renderCatalog();
 }
 
+function getDatasetKey(meta = {}) {
+  return meta.id || meta.url || meta.title || "";
+}
+
 function isLayerActive(meta) {
-  return activeLayers.some(item => item.meta.title === meta.title);
+  const key = getDatasetKey(meta);
+  return activeLayers.some(item => getDatasetKey(item.meta) === key);
 }
 
 function getLayerId(meta) {
-  return `layer-${meta.title.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+  const key = getDatasetKey(meta) || "untitled-layer";
+  return `layer-${key.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 }
 
 function scrollToActiveLayer(layerId) {
@@ -770,20 +862,28 @@ function scrollToActiveLayer(layerId) {
 
 function renderCatalogItem(meta) {
   const active = isLayerActive(meta);
-  return createLayerCard(meta, {
-    primary: active ? handleRemoveLayer : handleAddLayer
-  }, {
-    primaryText: active ? "Remove" : "Add",
-    active,
-    variant: "portal",
-    onCardClick: () => showInspector({
-      title: meta.title,
-      owner: meta.owner,
-      type: meta.type,
-      url: meta.url,
-      description: meta.description
-    }, "Feature Service Metadata")
-  });
+  return createLayerCard(
+    meta,
+    {
+      primary: active ? handleRemoveLayer : handleAddLayer,
+    },
+    {
+      primaryText: active ? "Remove" : "Add",
+      active,
+      variant: "portal",
+      onCardClick: () =>
+        showInspector(
+          {
+            title: meta.title,
+            owner: meta.owner,
+            type: meta.type,
+            url: meta.url,
+            description: meta.description,
+          },
+          "Feature Service Metadata",
+        ),
+    },
+  );
 }
 
 function renderActiveItem(item) {
@@ -793,8 +893,12 @@ function renderActiveItem(item) {
 
   const title = item.meta.title || "Untitled layer";
   const subtitle = `${item.meta.type || "Feature Service"}${item.meta.source ? ` · ${item.meta.source}` : item.meta.owner ? ` · ${item.meta.owner}` : ""}`;
-  const tags = (item.meta.tags || "").split(",").map((tag) => tag.trim()).filter(Boolean);
-  const description = item.meta.description || item.meta.snippet || "No description available.";
+  const tags = (item.meta.tags || "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  const description =
+    item.meta.description || item.meta.snippet || "No description available.";
 
   card.innerHTML = `
     <div class="active-layer-card__header">
@@ -898,7 +1002,10 @@ function renderActiveTableItem(tableMeta) {
     event.stopPropagation();
     // Set tableState to this table
     tableState.layerMeta = tableMeta;
-    tableState.layer = new FeatureLayer({ url: tableMeta.url, outFields: ["*"] });
+    tableState.layer = new FeatureLayer({
+      url: tableMeta.url,
+      outFields: ["*"],
+    });
     tableState.visible = true;
     if (featureTable) {
       featureTable.layer = tableState.layer;
@@ -908,7 +1015,7 @@ function renderActiveTableItem(tableMeta) {
 
   removeButton.addEventListener("click", (event) => {
     event.stopPropagation();
-    activeTables = activeTables.filter(t => t.title !== tableMeta.title);
+    activeTables = activeTables.filter((t) => t.title !== tableMeta.title);
     renderUI();
   });
 
@@ -924,7 +1031,7 @@ function prepareTable(item) {
   }
 
   // Add to active tables if not already
-  if (!activeTables.some(t => t.url === item.meta.url)) {
+  if (!activeTables.some((t) => t.url === item.meta.url)) {
     activeTables.push(item.meta);
   }
 
@@ -941,7 +1048,10 @@ function renderTablePanel() {
   toggle.textContent = tableState.visible ? "Hide" : "Show table";
 
   // Show floating button if table is hidden but there are active tables
-  tableToggleButton.classList.toggle("hidden", tableState.visible || activeTables.length === 0);
+  tableToggleButton.classList.toggle(
+    "hidden",
+    tableState.visible || activeTables.length === 0,
+  );
 
   if (!tableState.visible) {
     return;
@@ -957,7 +1067,8 @@ function renderTablePanel() {
   }
 
   tableInfo.textContent = tableState.layerMeta.title;
-  tableMessage.textContent = "Browsing attributes in a native ArcGIS FeatureTable.";
+  tableMessage.textContent =
+    "Browsing attributes in a native ArcGIS FeatureTable.";
   if (featureTable) {
     featureTable.layer = tableState.layer;
   }
@@ -970,7 +1081,7 @@ function showLayerSettings(item) {
     owner: item.meta.owner,
     type: item.meta.type,
     visible: item.visible ? "Yes" : "No",
-    url: item.meta.url
+    url: item.meta.url,
   };
 
   const controls = document.createElement("div");

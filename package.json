@@ -1,5 +1,5 @@
 {
-  "name": "/seattle-geodata-explorer/",
+  "name": "seattle-geodata-explorer",
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
