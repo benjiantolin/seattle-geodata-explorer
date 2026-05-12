@@ -23,9 +23,11 @@ export function showInspector(attributes, heading = "Attributes", extraNode = nu
 
   Object.entries(attributes).forEach(([key, value]) => {
     const row = document.createElement("tr");
-    const formattedValue = key === "url"
-      ? `<a href="${value}" target="_blank" rel="noreferrer">Open service</a>`
-      : `${value}`;
+    const formattedValue = key === "url" && value
+      ? `<a class="inspector__link" href="${value}" target="_blank" rel="noreferrer">${value}</a>`
+      : value != null
+        ? `${value}`
+        : "—";
 
     row.innerHTML = `
       <td class="inspector__key">${key}</td>

@@ -28,8 +28,12 @@ const app = document.getElementById("app");
 const catalogData = getAllCatalog();
 let activeLayers = [];
 let searchQuery = "";
-let sortBy = "title";
+let sortBy = "default";
 let activeTab = "catalog";
+let filterType = "";
+let filterCategory = "";
+let filterSource = "";
+let filterTag = "";
 let tableState = {
   layerMeta: null,
   layer: null,
@@ -39,6 +43,26 @@ let tableState = {
   rows: []
 };
 
+function getUniqueItems(field, delimiter = ",") {
+  return [...new Set(catalogData.flatMap(item => {
+    const value = item[field] || "";
+    return value
+      .toString()
+      .split(delimiter)
+      .map(part => part.trim())
+      .filter(Boolean);
+  }))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+}
+
+function formatCategoryLabel(category) {
+  return category.replace(/\/Categories\//g, "").replace(/\//g, " / ").trim();
+}
+
+const categories = getUniqueItems("categories");
+const tags = getUniqueItems("tags");
+const sources = getUniqueItems("source");
+
+
 const header = document.createElement("section");
 header.className = "sidebar__header";
 header.innerHTML = `
@@ -46,13 +70,13 @@ header.innerHTML = `
     <div class="sidebar__brand-mark">S</div>
     <div class="sidebar__brand-copy">
       <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
-      <div class="sidebar__brand-subtitle">Live Seattle data discovery with a sleek layer catalog and active layer manager.</div>
+      <div class="sidebar__brand-subtitle">Explore Seattle ArcGIS services by category, source, tag and date.</div>
     </div>
   </div>
   <div class="sidebar__toolbar">
-    <button type="button" class="sidebar__toolbar-button" id="projectInfoButton">Info</button>
-    <a href="mailto:MapContest@wagisa.org" class="sidebar__toolbar-button sidebar__toolbar-link">Contact</a>
-    <button type="button" class="sidebar__toolbar-button" id="shareButton">Share</button>
+    <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info">ℹ</button>
+    <a href="mailto:MapContest@wagisa.org" class="sidebar__toolbar-button sidebar__toolbar-link" title="Contact">✉</a>
+    <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share">⤴</button>
   </div>
 `;
 
@@ -65,18 +89,95 @@ const searchBar = new SearchBar(handleSearch);
 searchBar.mount(searchWrapper);
 controls.appendChild(searchWrapper);
 
+const sortRow = document.createElement("div");
+sortRow.className = "sidebar__sort-row";
+
 const sortSelect = document.createElement("select");
 sortSelect.className = "sidebar__sort";
 sortSelect.innerHTML = `
+  <option value="default">Sort by category + newest</option>
   <option value="title">Sort by title</option>
   <option value="owner">Sort by owner</option>
   <option value="type">Sort by type</option>
+  <option value="created">Sort by created date</option>
+  <option value="modified">Sort by modified date</option>
+  <option value="source">Sort by source</option>
 `;
 sortSelect.addEventListener("change", (event) => {
   sortBy = event.target.value;
   renderCatalog();
 });
-controls.appendChild(sortSelect);
+sortRow.appendChild(sortSelect);
+controls.appendChild(sortRow);
+
+const filterRow = document.createElement("div");
+filterRow.className = "sidebar__filters";
+
+const typeFilterSelect = document.createElement("select");
+typeFilterSelect.className = "sidebar__filter";
+typeFilterSelect.innerHTML = `
+  <option value="">All types</option>
+  <option value="Feature Service">Feature Service</option>
+  <option value="Map Service">Map Service</option>
+  <option value="Image Service">Image Service</option>
+`;
+typeFilterSelect.addEventListener("change", (event) => {
+  filterType = event.target.value;
+  renderCatalog();
+});
+filterRow.appendChild(typeFilterSelect);
+
+const categoryFilterSelect = document.createElement("select");
+categoryFilterSelect.className = "sidebar__filter";
+categoryFilterSelect.innerHTML = [`
+  <option value="">All categories</option>
+`,
+  ...categories.map(category => `<option value="${category}">${formatCategoryLabel(category)}</option>`)
+].join("");
+categoryFilterSelect.addEventListener("change", (event) => {
+  filterCategory = event.target.value;
+  renderCatalog();
+});
+filterRow.appendChild(categoryFilterSelect);
+
+const sourceFilterSelect = document.createElement("select");
+sourceFilterSelect.className = "sidebar__filter";
+sourceFilterSelect.innerHTML = [`
+  <option value="">All sources</option>
+`,
+  ...sources.map(source => `<option value="${source}">${source}</option>`)
+].join("");
+sourceFilterSelect.addEventListener("change", (event) => {
+  filterSource = event.target.value;
+  renderCatalog();
+});
+filterRow.appendChild(sourceFilterSelect);
+
+const tagFilterWrapper = document.createElement("div");
+tagFilterWrapper.className = "sidebar__tag-wrapper";
+
+const tagFilterInput = document.createElement("input");
+tagFilterInput.className = "sidebar__tag-search";
+tagFilterInput.setAttribute("list", "tagOptions");
+tagFilterInput.placeholder = "Search tags…";
+tagFilterInput.addEventListener("input", (event) => {
+  filterTag = event.target.value;
+  renderCatalog();
+});
+
+const tagDatalist = document.createElement("datalist");
+tagDatalist.id = "tagOptions";
+tags.forEach((tag) => {
+  const option = document.createElement("option");
+  option.value = tag;
+  tagDatalist.appendChild(option);
+});
+
+tagFilterWrapper.appendChild(tagFilterInput);
+tagFilterWrapper.appendChild(tagDatalist);
+filterRow.appendChild(tagFilterWrapper);
+
+controls.appendChild(filterRow);
 
 const tabBar = document.createElement("div");
 tabBar.className = "sidebar__tabs";
@@ -114,7 +215,7 @@ catalogContainer.className = "sidebar__list";
 
 const activeContainer = document.createElement("div");
 activeContainer.id = "activeContainer";
-activeContainer.className = "sidebar__list hidden";
+activeContainer.className = "sidebar__layer-list hidden";
 
 const tablePanel = document.createElement("div");
 tablePanel.className = "sidebar__table-panel hidden";
@@ -146,6 +247,12 @@ sidebar.appendChild(catalogHeader);
 sidebar.appendChild(activeHeader);
 sidebar.appendChild(catalogContainer);
 sidebar.appendChild(activeContainer);
+
+const sidebarFooter = document.createElement("div");
+sidebarFooter.className = "sidebar__footer";
+sidebarFooter.innerHTML = `Built with <span class="footer-coffee">☕</span> by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a>`;
+sidebar.appendChild(sidebarFooter);
+
 app.appendChild(tablePanel);
 
 const layerListWidget = new LayerListWidget({
@@ -282,6 +389,19 @@ shareButton.addEventListener("click", async () => {
   }
 });
 
+const splashOverlay = document.getElementById("splashOverlay");
+if (splashOverlay) {
+  const closeButton = splashOverlay.querySelector(".splash-overlay__close");
+  const enterButton = splashOverlay.querySelector(".splash-overlay__enter");
+
+  closeButton?.addEventListener("click", () => {
+    splashOverlay.style.display = "none";
+  });
+  enterButton?.addEventListener("click", () => {
+    splashOverlay.style.display = "none";
+  });
+}
+
 map.view.on("click", async (event) => {
   const hit = await map.view.hitTest(event);
   if (hit.results.length) {
@@ -299,12 +419,48 @@ function renderUI() {
 }
 
 function updateSummary() {
-  layerSummary.textContent = `${catalogData.length} datasets · ${activeLayers.length} active`;
+  layerSummary.textContent = `${currentCatalog().length} datasets · ${activeLayers.length} active`;
 }
 
 function currentCatalog() {
-  const results = searchQuery ? searchCatalog(searchQuery) : catalogData;
+  let results = searchQuery ? searchCatalog(searchQuery) : catalogData;
+  if (filterType) {
+    results = results.filter(item => item.type === filterType);
+  }
+  if (filterCategory) {
+    results = results.filter(item => {
+      const categories = (item.categories || "").split(",").map((value) => value.trim());
+      return categories.includes(filterCategory);
+    });
+  }
+  if (filterSource) {
+    results = results.filter(item => item.source === filterSource);
+  }
+  if (filterTag) {
+    const tagValue = filterTag.toLowerCase().trim();
+    results = results.filter(item => {
+      const tags = (item.tags || "").split(",").map((value) => value.trim().toLowerCase());
+      return tags.some((tag) => tag.includes(tagValue));
+    });
+  }
+
   return [...results].sort((a, b) => {
+    if (sortBy === "default") {
+      const aCategory = (a.categories || "").toLowerCase();
+      const bCategory = (b.categories || "").toLowerCase();
+      if (aCategory !== bCategory) {
+        return aCategory.localeCompare(bCategory);
+      }
+      const aDate = new Date(a.created || 0);
+      const bDate = new Date(b.created || 0);
+      return bDate - aDate;
+    }
+
+    if (sortBy === "created" || sortBy === "modified") {
+      const aDate = new Date(a[sortBy] || 0);
+      const bDate = new Date(b[sortBy] || 0);
+      return bDate - aDate; // Newest first
+    }
     const aValue = (a[sortBy] || "").toString().toLowerCase();
     const bValue = (b[sortBy] || "").toString().toLowerCase();
     return aValue.localeCompare(bValue);
@@ -312,7 +468,10 @@ function currentCatalog() {
 }
 
 function renderCatalog() {
+  const scrollTop = catalogContainer.scrollTop;
   catalogList.render(currentCatalog());
+  catalogContainer.scrollTop = scrollTop;
+  updateSummary();
 }
 
 function renderActiveLayers() {
@@ -339,19 +498,28 @@ async function handleAddLayer(meta) {
     return;
   }
 
-  const layer = await createLayerFromMetadata(meta);
-  layer.id = getLayerId(meta);
-  layer.visible = true;
-  map.addLayer(layer);
+  try {
+    const layer = await createLayerFromMetadata(meta);
+    layer.id = getLayerId(meta);
+    layer.visible = true;
+    map.addLayer(layer);
 
-  activeLayers.push({
-    meta,
-    layer,
-    visible: true
-  });
+    activeLayers.push({
+      meta,
+      layer,
+      visible: true
+    });
 
-  renderUI();
-  map.zoomToLayer(layer);
+    switchTab("active");
+    renderUI();
+    map.zoomToLayer(layer);
+  } catch (error) {
+    showInspector({
+      "Layer": meta.title,
+      "Status": "Unable to load",
+      "Reason": error.message
+    }, "Layer Load Error");
+  }
 }
 
 function handleRemoveLayer(meta) {
@@ -413,6 +581,7 @@ function renderCatalogItem(meta) {
   }, {
     primaryText: active ? "Remove" : "Add",
     active,
+    variant: "portal",
     onCardClick: () => showInspector({
       title: meta.title,
       owner: meta.owner,
@@ -433,6 +602,7 @@ function renderActiveItem(item) {
     secondaryText: item.visible ? "Hide" : "Show",
     tertiaryText: "Table",
     active: true,
+    variant: "layerlist",
     onCardClick: () => showLayerSettings(item)
   });
 }

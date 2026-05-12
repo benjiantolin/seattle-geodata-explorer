@@ -1,12 +1,33 @@
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import MapImageLayer from "@arcgis/core/layers/MapImageLayer";
 
+async function fetchServiceJson(url) {
+  const response = await fetch(`${url.replace(/\/?$/, "")}?f=json`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch service metadata: ${response.statusText}`);
+  }
+  return response.json();
+}
+
 export async function createLayerFromMetadata(meta) {
   const url = meta.url;
 
   if (meta.type.includes("Feature")) {
+    let featureUrl = url;
+
+    if (/\/FeatureServer\/?$/i.test(url)) {
+      const service = await fetchServiceJson(url);
+      if (service.layers && service.layers.length > 0) {
+        featureUrl = `${url.replace(/\/?$/, "")}/${service.layers[0].id}`;
+      } else if (service.tables && service.tables.length > 0) {
+        throw new Error("This service contains only tables and cannot be displayed as a map layer.");
+      } else {
+        throw new Error("No displayable feature layer was found for this service.");
+      }
+    }
+
     return new FeatureLayer({
-      url,
+      url: featureUrl,
       title: meta.title,
       outFields: ["*"],
       popupEnabled: true

@@ -1,12 +1,44 @@
 import catalog from "../data/catalog.json";
 
 export function searchCatalog(query) {
-  const q = query.toLowerCase();
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    return catalog;
+  }
+
+  const searchableFields = [
+    "id",
+    "title",
+    "description",
+    "snippet",
+    "owner",
+    "type",
+    "tags",
+    "categories",
+    "accessInformation",
+    "licenseInfo",
+    "culture",
+    "url",
+    "access",
+    "license",
+    "source",
+    "extent",
+    "industries",
+    "created",
+    "modified"
+  ];
+
   return catalog.filter(item =>
-    item.title.toLowerCase().includes(q) ||
-    (item.description && item.description.toLowerCase().includes(q)) ||
-    (item.owner && item.owner.toLowerCase().includes(q)) ||
-    (item.categories && item.categories.toLowerCase().includes(q))
+    searchableFields.some((field) => {
+      const value = item[field];
+      if (value == null) {
+        return false;
+      }
+      if (Array.isArray(value)) {
+        return value.some(v => v.toString().toLowerCase().includes(q));
+      }
+      return value.toString().toLowerCase().includes(q);
+    })
   );
 }
 
