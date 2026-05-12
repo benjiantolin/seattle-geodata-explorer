@@ -1,0 +1,529 @@
+@import "@arcgis/core/assets/esri/themes/dark/main.css";
+
+html, body, #app {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: Inter, system-ui, sans-serif;
+  background: #0d1117;
+  color: #f0f6fc;
+}
+
+#viewDiv {
+  position: absolute;
+  inset: 0;
+}
+
+#sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 380px;
+  height: 100%;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(8, 12, 20, 0.94);
+  backdrop-filter: blur(18px);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  z-index: 10;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.04);
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+
+.sidebar__header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.sidebar__brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.sidebar__brand-mark {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2b88ff, #0ea5e9);
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.sidebar__brand-copy {
+  min-width: 0;
+}
+
+.sidebar__brand-title {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.sidebar__brand-subtitle {
+  margin-top: 4px;
+  font-size: 0.83rem;
+  opacity: 0.8;
+  line-height: 1.5;
+  max-width: 240px;
+}
+
+.sidebar__toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sidebar__toolbar-button,
+.sidebar__toolbar-link {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.06);
+  color: #f5f8ff;
+  font-size: 0.85rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.sidebar__toolbar-button:hover,
+.sidebar__toolbar-link:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+
+.sidebar__controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-bar {
+  width: 100%;
+}
+
+.search-bar__input {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.08);
+  color: #f8fbff;
+  outline: none;
+  font-size: 0.95rem;
+}
+
+.search-bar__input:focus {
+  border-color: rgba(71, 181, 255, 0.7);
+  box-shadow: 0 0 0 4px rgba(71, 181, 255, 0.08);
+}
+
+.sidebar__sort,
+#basemapSelect {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(11, 17, 28, 0.92);
+  color: #f6f8ff;
+  outline: none;
+  appearance: none;
+}
+
+.sidebar__sort option,
+#basemapSelect option {
+  background: #0b111d;
+  color: #f8fbff;
+}
+
+.sidebar__basemap {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.sidebar__basemap label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+}
+
+.sidebar__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.sidebar__tab {
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  color: #f8fbff;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.sidebar__tab:hover {
+  transform: translateY(-1px);
+}
+
+.sidebar__tab--active {
+  background: rgba(71, 181, 255, 0.22);
+  border-color: rgba(71, 181, 255, 0.35);
+  color: #fff;
+}
+
+.sidebar__summary,
+.sidebar__section-heading {
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+  opacity: 0.78;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar__clear {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.08);
+  color: #f6f8ff;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.sidebar__clear:hover {
+  background: rgba(255,255,255,0.16);
+}
+
+.sidebar__list {
+  display: grid;
+  gap: 12px;
+}
+
+.sidebar__table-panel {
+  position: absolute;
+  left: 420px;
+  right: 24px;
+  bottom: 22px;
+  height: 46vh;
+  min-height: 360px;
+  max-height: 58vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  background: rgba(8, 12, 18, 0.96);
+  overflow: hidden;
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(20px);
+  z-index: 12;
+}
+
+.sidebar__table-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+}
+
+.sidebar__table-body .esri-feature-table {
+  min-height: 320px;
+}
+
+.map-tools-expand-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 280px;
+  max-width: 360px;
+  padding: 10px;
+}
+
+.map-tools-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.sidebar__table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar__table-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sidebar__table-subtitle {
+  margin-top: 4px;
+  opacity: 0.7;
+  font-size: 0.82rem;
+}
+
+.sidebar__table-toggle,
+.sidebar__table-load {
+  border: none;
+  background: rgba(71, 181, 255, 0.9);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.sidebar__table-toggle:hover,
+.sidebar__table-load:hover {
+  transform: translateY(-1px);
+}
+
+.sidebar__table-message {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  line-height: 1.6;
+}
+
+.sidebar__table-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.sidebar__table-layer {
+  font-weight: 600;
+}
+
+.sidebar__feature-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.sidebar__feature-table th,
+.sidebar__feature-table td {
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 10px 8px;
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.sidebar__feature-table th {
+  background: rgba(255,255,255,0.06);
+  font-weight: 700;
+}
+
+.layer-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.layer-card:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-1px);
+}
+
+.layer-card--active {
+  border-color: rgba(71, 181, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(71, 181, 255, 0.08);
+}
+
+.layer-card__info {
+  min-width: 0;
+}
+
+.layer-card__title {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.layer-card__subtitle,
+.layer-card__meta {
+  font-size: 0.82rem;
+  opacity: 0.72;
+  line-height: 1.4;
+}
+
+.layer-card__buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.layer-card__button {
+  min-width: 72px;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.layer-card__button:hover {
+  transform: translateY(-1px);
+}
+
+.layer-card__button--primary {
+  background: #47b5ff;
+}
+
+.layer-card__button--secondary {
+  background: rgba(255,255,255,0.12);
+}
+
+#inspector {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 360px;
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+  background: rgba(13,17,23,0.96);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  display: none;
+  z-index: 11;
+}
+
+#inspector::-webkit-scrollbar {
+  width: 8px;
+}
+
+#inspector::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.04);
+}
+
+#inspector::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.18);
+  border-radius: 999px;
+}
+
+.inspector__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.inspector__header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+}
+
+.inspector__close {
+  border: none;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.inspector__controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.inspector__control-row {
+  display: grid;
+  gap: 10px;
+}
+
+.inspector__control-row--toggle {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.inspector__slider {
+  width: 100%;
+}
+
+.inspector__control-value {
+  font-weight: 700;
+}
+
+#inspector table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inspector__key,
+.inspector__value {
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.inspector__key {
+  width: 38%;
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+.inspector__value {
+  width: 62%;
+  font-size: 0.95rem;
+}
+
+#inspector tr:last-child .inspector__key,
+#inspector tr:last-child .inspector__value {
+  border-bottom: none;
+}
+
+#inspector tr:last-child .inspector__key,
+#inspector tr:last-child .inspector__value {
+  border-bottom: none;
+}
