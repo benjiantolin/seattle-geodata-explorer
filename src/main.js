@@ -265,7 +265,6 @@ activeContainer.className = "sidebar__layer-list hidden";
 const activeTablesContainer = document.createElement("div");
 activeTablesContainer.id = "activeTablesContainer";
 activeTablesContainer.className = "sidebar__layer-list hidden";
-const activeTablesHeader = document.createElement("div");
 
 
 const activeTablesHeader = document.createElement("div");
