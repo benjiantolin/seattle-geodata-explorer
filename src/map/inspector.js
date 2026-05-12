@@ -1,4 +1,4 @@
-export function showInspector(attributes, heading = "Attributes", extraNode = null) {
+export function showInspector(attributes, heading = "Attributes", extraNode = null, actions = []) {
   const panel = document.getElementById("inspector");
   panel.style.display = "block";
 
@@ -13,6 +13,22 @@ export function showInspector(attributes, heading = "Attributes", extraNode = nu
   closeBtn.addEventListener("click", () => {
     panel.style.display = "none";
   });
+
+  if (actions.length) {
+    const actionsBar = document.createElement("div");
+    actionsBar.className = "inspector__actions";
+    actions.forEach((action) => {
+      const button = document.createElement("button");
+      button.className = "inspector__action-button";
+      button.type = "button";
+      button.textContent = action.label;
+      button.addEventListener("click", () => {
+        action.onClick?.();
+      });
+      actionsBar.appendChild(button);
+    });
+    panel.appendChild(actionsBar);
+  }
 
   if (extraNode) {
     panel.appendChild(extraNode);

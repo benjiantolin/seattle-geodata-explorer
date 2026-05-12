@@ -20,25 +20,35 @@ export async function createLayerFromMetadata(meta) {
       if (service.layers && service.layers.length > 0) {
         featureUrl = `${url.replace(/\/?$/, "")}/${service.layers[0].id}`;
       } else if (service.tables && service.tables.length > 0) {
-        throw new Error("This service contains only tables and cannot be displayed as a map layer.");
+        return {
+          tables: service.tables.map((table) => ({
+            id: table.id,
+            name: table.name,
+            url: `${url.replace(/\/?$/, "")}/${table.id}`
+          }))
+        };
       } else {
         throw new Error("No displayable feature layer was found for this service.");
       }
     }
 
-    return new FeatureLayer({
-      url: featureUrl,
-      title: meta.title,
-      outFields: ["*"],
-      popupEnabled: true
-    });
+    return {
+      layer: new FeatureLayer({
+        url: featureUrl,
+        title: meta.title,
+        outFields: ["*"],
+        popupEnabled: true
+      })
+    };
   }
 
   if (meta.type.includes("Map Server") || meta.url.includes("MapServer")) {
-    return new MapImageLayer({
-      url,
-      title: meta.title
-    });
+    return {
+      layer: new MapImageLayer({
+        url,
+        title: meta.title
+      })
+    };
   }
 
   throw new Error(`Unsupported layer type: ${meta.type}`);

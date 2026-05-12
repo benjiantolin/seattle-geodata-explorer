@@ -10,6 +10,9 @@ export default defineConfig({
       "@arcgis/core/widgets/Compass"
     ]
   },
+  define: {
+    "process.env": {}      // <-- important for GitHub Pages
+  },
   server: {
     fs: {
       strict: false

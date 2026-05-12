@@ -14,6 +14,7 @@ import Measurement from "@arcgis/core/widgets/Measurement";
 import Compass from "@arcgis/core/widgets/Compass";
 import Legend from "@arcgis/core/widgets/Legend";
 import Home from "@arcgis/core/widgets/Home";
+import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 
 import { SearchBar } from "./ui/SearchBar.js";
 import { LayerList as CustomLayerList } from "./ui/LayerList.js";
@@ -25,8 +26,15 @@ const map = new MapController("viewDiv");
 const sidebar = document.getElementById("sidebar");
 const app = document.getElementById("app");
 
+// Set custom attribution
+map.view.when(() => {
+  const existingAttribution = map.view.attribution.text;
+  map.view.attribution.text = `${existingAttribution} | Built with ☕ by Benji`;
+});
+
 const catalogData = getAllCatalog();
 let activeLayers = [];
+let activeTables = [];
 let searchQuery = "";
 let sortBy = "default";
 let activeTab = "catalog";
@@ -34,6 +42,7 @@ let filterType = "";
 let filterCategory = "";
 let filterSource = "";
 let filterTag = "";
+let filterContentType = "";
 let tableState = {
   layerMeta: null,
   layer: null,
@@ -67,7 +76,7 @@ const header = document.createElement("section");
 header.className = "sidebar__header";
 header.innerHTML = `
   <div class="sidebar__brand">
-    <div class="sidebar__brand-mark">S</div>
+    <div class="sidebar__brand-mark">SG</div>
     <div class="sidebar__brand-copy">
       <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
       <div class="sidebar__brand-subtitle">Explore Seattle ArcGIS services by category, source, tag and date.</div>
@@ -75,7 +84,8 @@ header.innerHTML = `
   </div>
   <div class="sidebar__toolbar">
     <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info">ℹ</button>
-    <a href="mailto:MapContest@wagisa.org" class="sidebar__toolbar-button sidebar__toolbar-link" title="Contact">✉</a>
+    <a href="https://github.com/benjiantolin" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub" target="_blank" rel="noopener">🐙</a>
+    <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener">💼</a>
     <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share">⤴</button>
   </div>
 `;
@@ -177,6 +187,19 @@ tagFilterWrapper.appendChild(tagFilterInput);
 tagFilterWrapper.appendChild(tagDatalist);
 filterRow.appendChild(tagFilterWrapper);
 
+const contentTypeFilterSelect = document.createElement("select");
+contentTypeFilterSelect.className = "sidebar__filter";
+contentTypeFilterSelect.innerHTML = `
+  <option value="">All content</option>
+  <option value="layers">Map layers</option>
+  <option value="tables">Tables only</option>
+`;
+contentTypeFilterSelect.addEventListener("change", (event) => {
+  filterContentType = event.target.value;
+  renderCatalog();
+});
+filterRow.appendChild(contentTypeFilterSelect);
+
 controls.appendChild(filterRow);
 
 const tabBar = document.createElement("div");
@@ -217,6 +240,10 @@ const activeContainer = document.createElement("div");
 activeContainer.id = "activeContainer";
 activeContainer.className = "sidebar__layer-list hidden";
 
+const activeTablesHeader = document.createElement("div");
+activeTablesHeader.className = "sidebar__section-heading hidden active-tables-header";
+activeTablesHeader.textContent = "Active Tables";
+
 const tablePanel = document.createElement("div");
 tablePanel.className = "sidebar__table-panel hidden";
 tablePanel.innerHTML = `
@@ -247,6 +274,8 @@ sidebar.appendChild(catalogHeader);
 sidebar.appendChild(activeHeader);
 sidebar.appendChild(catalogContainer);
 sidebar.appendChild(activeContainer);
+sidebar.appendChild(activeTablesHeader);
+sidebar.appendChild(activeTablesContainer);
 
 const sidebarFooter = document.createElement("div");
 sidebarFooter.className = "sidebar__footer";
@@ -254,6 +283,16 @@ sidebarFooter.innerHTML = `Built with <span class="footer-coffee">☕</span> by 
 sidebar.appendChild(sidebarFooter);
 
 app.appendChild(tablePanel);
+
+const tableToggleButton = document.createElement("button");
+tableToggleButton.className = "table-toggle-floating hidden";
+tableToggleButton.innerHTML = "📊";
+tableToggleButton.title = "Open table";
+tableToggleButton.addEventListener("click", () => {
+  tableState.visible = true;
+  renderTablePanel();
+});
+app.appendChild(tableToggleButton);
 
 const layerListWidget = new LayerListWidget({
   view: map.view,
@@ -365,6 +404,7 @@ layerListWidget.on("trigger-action", (event) => {
 
 const catalogList = new CustomLayerList(catalogContainer, renderCatalogItem);
 const activeList = new CustomLayerList(activeContainer, renderActiveItem);
+const activeTablesList = new CustomLayerList(activeTablesContainer, renderActiveTableItem);
 
 renderUI();
 
@@ -372,7 +412,11 @@ const projectInfoButton = header.querySelector("#projectInfoButton");
 projectInfoButton.addEventListener("click", () => {
   showInspector({
     "Project": "Seattle GeoData Explorer",
-    "Purpose": "Interactive discovery of Seattle open data services.",
+    "Purpose": "Interactive discovery of Seattle open data services. Built for WAGISA Map Contest.",
+    "Inspiration": "Dev Summit and Seattle Public Utilities Utiliview rebuild.",
+    "Tech": "Vite + ArcGIS SDK for custom web apps with reusable components.",
+    "Data Source": "Single CSV export from data-seattlecitygis.opendata.arcgis.com",
+    "Built With": "GitHub Copilot AI assistance in 3 evenings",
     "How to use": "Browse, load, manage, and inspect layers. Add a layer to the table on demand.",
     "Submit by": "May 12, 2026 noon"
   }, "Project Info");
@@ -389,31 +433,73 @@ shareButton.addEventListener("click", async () => {
   }
 });
 
-const splashOverlay = document.getElementById("splashOverlay");
-if (splashOverlay) {
-  const closeButton = splashOverlay.querySelector(".splash-overlay__close");
-  const enterButton = splashOverlay.querySelector(".splash-overlay__enter");
+window.addEventListener('load', () => {
+  const splashOverlay = document.getElementById("splashOverlay");
+  if (splashOverlay) {
+    const closeButton = splashOverlay.querySelector(".splash-overlay__close");
+    const enterButton = splashOverlay.querySelector(".splash-overlay__enter");
 
-  closeButton?.addEventListener("click", () => {
-    splashOverlay.style.display = "none";
-  });
-  enterButton?.addEventListener("click", () => {
-    splashOverlay.style.display = "none";
-  });
-}
+    const hideSplash = () => {
+      splashOverlay.style.display = "none";
+    };
+
+    if (closeButton) {
+      closeButton.addEventListener("click", hideSplash);
+    }
+    if (enterButton) {
+      enterButton.addEventListener("click", hideSplash);
+    }
+  }
+});
 
 map.view.on("click", async (event) => {
   const hit = await map.view.hitTest(event);
-  if (hit.results.length) {
-    const attrs = hit.results[0].graphic.attributes;
-    showInspector(attrs, "Feature Attributes");
+  if (!hit.results.length) {
+    return;
   }
+
+  const result = hit.results[0];
+  const graphic = result.graphic;
+  const layer = graphic?.layer;
+  const attrs = graphic?.attributes || {};
+  const active = activeLayers.find((entry) => entry.layer.id === layer?.id);
+  const actions = [];
+
+  if (graphic?.geometry) {
+    actions.push({
+      label: "Zoom to feature",
+      onClick: () => {
+        map.view.goTo({ target: graphic.geometry }, { duration: 700, easing: "ease-in-out" });
+      }
+    });
+  }
+
+  if (active) {
+    actions.push({
+      label: "View in table",
+      onClick: () => prepareTable(active)
+    });
+    actions.push({
+      label: "Open layer",
+      onClick: () => scrollToActiveLayer(active.layer.id)
+    });
+  }
+
+  if (active?.meta.url) {
+    actions.push({
+      label: "Open source",
+      onClick: () => window.open(active.meta.url, "_blank")
+    });
+  }
+
+  showInspector(attrs, "Feature Details", null, actions);
 });
 
 function renderUI() {
   updateSummary();
   renderCatalog();
   renderActiveLayers();
+  renderActiveTables();
   renderTablePanel();
   updateTabVisibility();
 }
@@ -442,6 +528,13 @@ function currentCatalog() {
       const tags = (item.tags || "").split(",").map((value) => value.trim().toLowerCase());
       return tags.some((tag) => tag.includes(tagValue));
     });
+  }
+  if (filterContentType) {
+    if (filterContentType === "layers") {
+      results = results.filter(item => item.type === "Feature Service" || item.type === "Map Service");
+    } else if (filterContentType === "tables") {
+      results = results.filter(item => item.type !== "Feature Service" && item.type !== "Map Service");
+    }
   }
 
   return [...results].sort((a, b) => {
@@ -478,6 +571,10 @@ function renderActiveLayers() {
   activeList.render(activeLayers);
 }
 
+function renderActiveTables() {
+  activeTablesList.render(activeTables);
+}
+
 function switchTab(tabName) {
   activeTab = tabName;
   catalogTab.classList.toggle("sidebar__tab--active", tabName === "catalog");
@@ -490,7 +587,9 @@ function updateTabVisibility() {
   catalogContainer.classList.toggle("hidden", !catalogVisible);
   catalogHeader.classList.toggle("hidden", !catalogVisible);
   activeContainer.classList.toggle("hidden", catalogVisible);
+  activeTablesContainer.classList.toggle("hidden", catalogVisible);
   activeHeader.classList.toggle("hidden", catalogVisible);
+  activeTablesHeader.classList.toggle("hidden", catalogVisible);
 }
 
 async function handleAddLayer(meta) {
@@ -499,7 +598,13 @@ async function handleAddLayer(meta) {
   }
 
   try {
-    const layer = await createLayerFromMetadata(meta);
+    const result = await createLayerFromMetadata(meta);
+
+    if (result.tables?.length) {
+      return handleTableOnlyService(meta, result.tables);
+    }
+
+    const layer = result.layer;
     layer.id = getLayerId(meta);
     layer.visible = true;
     map.addLayer(layer);
@@ -520,6 +625,82 @@ async function handleAddLayer(meta) {
       "Reason": error.message
     }, "Layer Load Error");
   }
+}
+
+function handleTableOnlyService(meta, tables) {
+  if (!tables.length) {
+    showInspector({
+      "Layer": meta.title,
+      "Status": "No table data available"
+    }, "Table Service");
+    return;
+  }
+
+  if (tables.length === 1) {
+    openTableService(meta, tables[0]);
+    showInspector({
+      "Service": meta.title,
+      "Table": tables[0].name,
+      "Status": "Only tabular data available. Table view opened."
+    }, "Tabular Data");
+    return;
+  }
+
+  const selector = document.createElement("div");
+  selector.className = "inspector__table-selector";
+
+  tables.forEach((tableInfo) => {
+    const row = document.createElement("div");
+    row.className = "inspector__table-option";
+    row.innerHTML = `
+      <div class="inspector__table-info">
+        <div class="inspector__table-name">${tableInfo.name}</div>
+        <div class="inspector__table-id">Table ID ${tableInfo.id}</div>
+      </div>
+      <button class="inspector__button inspector__button--primary">Open table</button>
+    `;
+    row.querySelector("button").addEventListener("click", () => {
+      openTableService(meta, tableInfo);
+      showInspector({
+        "Service": meta.title,
+        "Table": tableInfo.name,
+        "Status": "Table view opened for selected table."
+      }, "Tabular Data");
+    });
+    selector.appendChild(row);
+  });
+
+  showInspector({
+    "Service": meta.title,
+    "Status": "This is a table-only FeatureServer. Choose a table to inspect."
+  }, "Table-only Service", selector);
+}
+
+function openTableService(meta, tableInfo) {
+  tableState.layerMeta = {
+    title: `${meta.title} — ${tableInfo.name}`,
+    owner: meta.owner,
+    type: meta.type,
+    url: tableInfo.url
+  };
+  tableState.layer = new FeatureLayer({
+    url: tableInfo.url,
+    title: tableInfo.name,
+    outFields: ["*"]
+  });
+  tableState.visible = true;
+
+  // Add to active tables if not already
+  if (!activeTables.some(t => t.url === tableInfo.url)) {
+    activeTables.push(tableState.layerMeta);
+  }
+
+  if (featureTable) {
+    featureTable.layer = tableState.layer;
+  }
+
+  switchTab("active");
+  renderTablePanel();
 }
 
 function handleRemoveLayer(meta) {
@@ -544,6 +725,7 @@ function clearAllLayers() {
     map.removeLayer(item.layer.id);
   });
   activeLayers = [];
+  activeTables = [];
   tableState = { layerMeta: null, layer: null, visible: false, loaded: false, columns: [], rows: [] };
   renderUI();
 }
@@ -574,6 +756,18 @@ function getLayerId(meta) {
   return `layer-${meta.title.replace(/[^a-zA-Z0-9_]/g, "_")}`;
 }
 
+function scrollToActiveLayer(layerId) {
+  switchTab("active");
+  requestAnimationFrame(() => {
+    const item = document.getElementById(`active-layer-${layerId}`);
+    if (item) {
+      item.scrollIntoView({ behavior: "smooth", block: "center" });
+      item.classList.add("active-scroll-highlight");
+      setTimeout(() => item.classList.remove("active-scroll-highlight"), 1400);
+    }
+  });
+}
+
 function renderCatalogItem(meta) {
   const active = isLayerActive(meta);
   return createLayerCard(meta, {
@@ -593,18 +787,132 @@ function renderCatalogItem(meta) {
 }
 
 function renderActiveItem(item) {
-  return createLayerCard(item.meta, {
-    primary: handleRemoveLayer,
-    secondary: handleToggleVisibility,
-    tertiary: () => prepareTable(item)
-  }, {
-    primaryText: "Remove",
-    secondaryText: item.visible ? "Hide" : "Show",
-    tertiaryText: "Table",
-    active: true,
-    variant: "layerlist",
-    onCardClick: () => showLayerSettings(item)
+  const card = document.createElement("div");
+  card.className = "active-layer-card";
+  card.id = `active-layer-${item.layer.id}`;
+
+  const title = item.meta.title || "Untitled layer";
+  const subtitle = `${item.meta.type || "Feature Service"}${item.meta.source ? ` · ${item.meta.source}` : item.meta.owner ? ` · ${item.meta.owner}` : ""}`;
+  const tags = (item.meta.tags || "").split(",").map((tag) => tag.trim()).filter(Boolean);
+  const description = item.meta.description || item.meta.snippet || "No description available.";
+
+  card.innerHTML = `
+    <div class="active-layer-card__header">
+      <div class="active-layer-card__text">
+        <div class="active-layer-card__title">${title}</div>
+        <div class="active-layer-card__subtitle">${subtitle}</div>
+      </div>
+      <div class="active-layer-card__controls">
+        <button type="button" class="icon-button visibility-toggle" title="${item.visible ? "Hide layer" : "Show layer"}">${item.visible ? "👁" : "🚫"}</button>
+        <button type="button" class="icon-button menu-toggle" title="Actions">⋯</button>
+      </div>
+    </div>
+    <div class="active-layer-card__menu hidden">
+      <button type="button" class="inspector__button inspector__button--secondary action-button">Zoom to</button>
+      <button type="button" class="inspector__button inspector__button--secondary action-button">View table</button>
+      <a class="inspector__button inspector__button--secondary action-button" target="_blank" rel="noreferrer">Source</a>
+      <button type="button" class="inspector__button inspector__button--secondary action-button">Remove</button>
+      <div class="active-layer-card__meta-block">
+        <div class="active-layer-card__menu-label">Description</div>
+        <div class="active-layer-card__menu-text">${description}</div>
+      </div>
+      ${tags.length ? `<div class="active-layer-card__tags">${tags.map((tag) => `<span class="layer-card__tag">${tag}</span>`).join("")}</div>` : ""}
+    </div>
+  `;
+
+  const visibilityButton = card.querySelector(".visibility-toggle");
+  const menuButton = card.querySelector(".menu-toggle");
+  const menu = card.querySelector(".active-layer-card__menu");
+  const zoomButton = card.querySelectorAll(".action-button")[0];
+  const tableButton = card.querySelectorAll(".action-button")[1];
+  const sourceLink = card.querySelectorAll(".action-button")[2];
+  const removeButton = card.querySelectorAll(".action-button")[3];
+
+  visibilityButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    handleToggleVisibility(item.meta);
   });
+
+  menuButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    menu.classList.toggle("hidden");
+  });
+
+  zoomButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    map.zoomToLayer(item.layer);
+  });
+
+  tableButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    prepareTable(item);
+  });
+
+  sourceLink.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const url = item.meta.url || "#";
+    if (url !== "#") {
+      window.open(url, "_blank");
+    }
+  });
+  sourceLink.textContent = item.meta.url ? "Source" : "No source";
+  sourceLink.href = item.meta.url || "#";
+  sourceLink.classList.toggle("disabled", !item.meta.url);
+
+  removeButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    handleRemoveLayer(item.meta);
+  });
+
+  card.addEventListener("click", () => {
+    menu.classList.add("hidden");
+  });
+
+  return card;
+}
+
+function renderActiveTableItem(tableMeta) {
+  const card = document.createElement("div");
+  card.className = "active-table-card";
+
+  const title = tableMeta.title || "Untitled table";
+  const subtitle = `${tableMeta.type || "Table"}${tableMeta.owner ? ` · ${tableMeta.owner}` : ""}`;
+
+  card.innerHTML = `
+    <div class="active-table-card__header">
+      <div class="active-table-card__text">
+        <div class="active-table-card__title">${title}</div>
+        <div class="active-table-card__subtitle">${subtitle}</div>
+      </div>
+      <div class="active-table-card__controls">
+        <button type="button" class="icon-button table-toggle" title="Open table">📊</button>
+        <button type="button" class="icon-button remove-table" title="Remove table">✕</button>
+      </div>
+    </div>
+  `;
+
+  const tableButton = card.querySelector(".table-toggle");
+  const removeButton = card.querySelector(".remove-table");
+
+  tableButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    // Set tableState to this table
+    tableState.layerMeta = tableMeta;
+    tableState.layer = new FeatureLayer({ url: tableMeta.url, outFields: ["*"] });
+    tableState.visible = true;
+    if (featureTable) {
+      featureTable.layer = tableState.layer;
+    }
+    renderTablePanel();
+  });
+
+  removeButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    activeTables = activeTables.filter(t => t.title !== tableMeta.title);
+    renderUI();
+  });
+
+  return card;
 }
 
 function prepareTable(item) {
@@ -614,6 +922,12 @@ function prepareTable(item) {
   if (featureTable) {
     featureTable.layer = item.layer;
   }
+
+  // Add to active tables if not already
+  if (!activeTables.some(t => t.url === item.meta.url)) {
+    activeTables.push(item.meta);
+  }
+
   renderTablePanel();
   switchTab("active");
 }
@@ -625,6 +939,9 @@ function renderTablePanel() {
 
   tablePanel.classList.toggle("hidden", !tableState.visible);
   toggle.textContent = tableState.visible ? "Hide" : "Show table";
+
+  // Show floating button if table is hidden but there are active tables
+  tableToggleButton.classList.toggle("hidden", tableState.visible || activeTables.length === 0);
 
   if (!tableState.visible) {
     return;
@@ -676,31 +993,16 @@ function showLayerSettings(item) {
     controls.appendChild(opacityRow);
   }
 
-  if (typeof layer.popupEnabled !== "undefined") {
-    const popupRow = document.createElement("div");
-    popupRow.className = "inspector__control-row inspector__control-row--toggle";
-    popupRow.innerHTML = `
-      <label>Popups</label>
-      <input type="checkbox" ${layer.popupEnabled ? "checked" : ""} />
-    `;
-    popupRow.querySelector("input").addEventListener("change", (event) => {
-      layer.popupEnabled = event.target.checked;
-    });
-    controls.appendChild(popupRow);
-  }
-
-  if (typeof layer.labelsVisible !== "undefined") {
-    const labelRow = document.createElement("div");
-    labelRow.className = "inspector__control-row inspector__control-row--toggle";
-    labelRow.innerHTML = `
-      <label>Labels</label>
-      <input type="checkbox" ${layer.labelsVisible ? "checked" : ""} />
-    `;
-    labelRow.querySelector("input").addEventListener("change", (event) => {
-      layer.labelsVisible = event.target.checked;
-    });
-    controls.appendChild(labelRow);
-  }
+  const activeButtonRow = document.createElement("div");
+  activeButtonRow.className = "inspector__control-row";
+  activeButtonRow.innerHTML = `
+    <button class="inspector__button inspector__button--secondary">Show in active layers</button>
+  `;
+  const activeButton = activeButtonRow.querySelector("button");
+  activeButton.addEventListener("click", () => {
+    scrollToActiveLayer(layer.id);
+  });
+  controls.appendChild(activeButtonRow);
 
   showInspector(attributes, "Layer Metadata", controls);
 }
