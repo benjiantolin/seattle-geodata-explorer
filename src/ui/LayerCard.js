@@ -30,7 +30,7 @@ export function createLayerCard(meta, actions = {}, options = {}) {
       .map((category) =>
         category.replace(/\/Categories\//g, "").replace(/\//g, " / "),
       )
-      .join(" · "),
+      .join(" / "),
   );
   const tagList = (meta.tags || "")
     .split(",")
@@ -46,32 +46,37 @@ export function createLayerCard(meta, actions = {}, options = {}) {
     ? `<div class="layer-card__tags">${tagList.map((tag) => `<span class="layer-card__tag">${escapeHtml(tag)}</span>`).join("")}</div>`
     : "";
   const createdLabel = created
-    ? `<div class="layer-card__date">${escapeHtml(created)}</div>`
+    ? `<div class="layer-card__created">Created ${escapeHtml(created)}</div>`
     : "";
   const categoryLine = displayCategories
-    ? `<div class="layer-card__categories">${displayCategories}</div>`
+    ? `<div class="layer-card__category-row">${displayCategories}</div>`
     : "";
 
   div.innerHTML = `
-    <div class="layer-card__info">
-      <div class="layer-card__top-row">
-        <div class="layer-card__head-group">
-          <div class="layer-card__heading">
-            <strong class="layer-card__title">${title}</strong>
-            ${badge}
-          </div>
-          <div class="layer-card__meta">${subtitle}</div>
+    <div class="layer-card__row">
+      <div class="layer-card__info">
+        <div class="layer-card__heading">
+          <strong class="layer-card__title">${title}</strong>
+          ${badge}
         </div>
-        ${createdLabel}
+        <div class="layer-card__meta">${subtitle}</div>
       </div>
+      <div class="layer-card__buttons"></div>
+      <button type="button" class="layer-card__menu-toggle" aria-expanded="false" aria-label="Show layer details">...</button>
+    </div>
+    <div class="layer-card__menu hidden">
       <div class="layer-card__description">${description}</div>
       ${categoryLine}
+      ${createdLabel}
       ${tagChips}
+      <div class="layer-card__secondary-actions"></div>
     </div>
-    <div class="layer-card__buttons"></div>
   `;
 
   const buttonContainer = div.querySelector(".layer-card__buttons");
+  const secondaryActions = div.querySelector(".layer-card__secondary-actions");
+  const menu = div.querySelector(".layer-card__menu");
+  const menuToggle = div.querySelector(".layer-card__menu-toggle");
 
   if (options.primaryText) {
     const primary = document.createElement("button");
@@ -92,7 +97,7 @@ export function createLayerCard(meta, actions = {}, options = {}) {
       event.stopPropagation();
       actions.secondary?.(meta);
     });
-    buttonContainer.appendChild(secondary);
+    secondaryActions.appendChild(secondary);
   }
 
   if (options.tertiaryText) {
@@ -103,8 +108,14 @@ export function createLayerCard(meta, actions = {}, options = {}) {
       event.stopPropagation();
       actions.tertiary?.(meta);
     });
-    buttonContainer.appendChild(tertiary);
+    secondaryActions.appendChild(tertiary);
   }
+
+  menuToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const expanded = menu.classList.toggle("hidden") === false;
+    menuToggle.setAttribute("aria-expanded", String(expanded));
+  });
 
   if (typeof options.onCardClick === "function") {
     div.addEventListener("click", () => options.onCardClick(meta));

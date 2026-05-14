@@ -5,7 +5,6 @@ import { createLayerFromMetadata } from "./map/layerFactory.js";
 import { showInspector } from "./map/inspector.js";
 
 import Expand from "@arcgis/core/widgets/Expand";
-import LayerListWidget from "@arcgis/core/widgets/LayerList";
 import FeatureTable from "@arcgis/core/widgets/FeatureTable";
 import BasemapGallery from "@arcgis/core/widgets/BasemapGallery";
 import Search from "@arcgis/core/widgets/Search";
@@ -19,6 +18,7 @@ import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
 import { SearchBar } from "./ui/SearchBar.js";
 import { LayerList as CustomLayerList } from "./ui/LayerList.js";
 import { createLayerCard } from "./ui/LayerCard.js";
+import { escapeHtml, safeUrl } from "./utils/escapeHtml.js";
 
 import { searchCatalog, getAllCatalog } from "./services/metadataService.js";
 
@@ -59,7 +59,6 @@ let filterType = "";
 let filterCategory = "";
 let filterSource = "";
 let filterTag = "";
-let filterContentType = "";
 let tableState = {
   layerMeta: null,
   layer: null,
@@ -99,7 +98,6 @@ const header = document.createElement("section");
 header.className = "sidebar__header";
 header.innerHTML = `
   <div class="sidebar__brand">
-    <div class="sidebar__brand-mark">SG</div>
     <div class="sidebar__brand-copy">
       <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
       <div class="sidebar__brand-subtitle">Explore Seattle ArcGIS services by category, source, tag and date.</div>
@@ -111,6 +109,16 @@ header.innerHTML = `
     <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share">⤴</button>
   </div>
 `;
+
+const toolbarButtons = header.querySelectorAll(".sidebar__toolbar-button");
+toolbarButtons[0]?.setAttribute("aria-label", "Project information");
+toolbarButtons[1]?.setAttribute("aria-label", "GitHub repository");
+toolbarButtons[2]?.setAttribute("aria-label", "LinkedIn profile");
+toolbarButtons[3]?.setAttribute("aria-label", "Share app");
+if (toolbarButtons[0]) toolbarButtons[0].textContent = "i";
+if (toolbarButtons[1]) toolbarButtons[1].textContent = "GH";
+if (toolbarButtons[2]) toolbarButtons[2].textContent = "in";
+if (toolbarButtons[3]) toolbarButtons[3].textContent = "S";
 
 const controls = document.createElement("div");
 controls.className = "sidebar__controls";
@@ -214,19 +222,6 @@ tagFilterWrapper.appendChild(tagFilterInput);
 tagFilterWrapper.appendChild(tagDatalist);
 filterRow.appendChild(tagFilterWrapper);
 
-const contentTypeFilterSelect = document.createElement("select");
-contentTypeFilterSelect.className = "sidebar__filter";
-contentTypeFilterSelect.innerHTML = `
-  <option value="">All content</option>
-  <option value="layers">Map layers</option>
-  <option value="tables">Tables only</option>
-`;
-contentTypeFilterSelect.addEventListener("change", (event) => {
-  filterContentType = event.target.value;
-  renderCatalog();
-});
-filterRow.appendChild(contentTypeFilterSelect);
-
 controls.appendChild(filterRow);
 
 const tabBar = document.createElement("div");
@@ -328,35 +323,6 @@ tableToggleButton.addEventListener("click", () => {
 });
 app.appendChild(tableToggleButton);
 
-const layerListWidget = new LayerListWidget({
-  view: map.view,
-  listItemCreatedFunction: (event) => {
-    const item = event.item;
-    if (!item || !item.layer) {
-      return;
-    }
-
-    item.actionsSections = [
-      [
-        {
-          title: "Zoom to",
-          id: "zoom",
-          className: "esri-icon-zoom-in-magnifying-glass",
-        },
-        { title: "Inspect", id: "inspect", className: "esri-icon-description" },
-        { title: "Remove", id: "remove", className: "esri-icon-trash" },
-      ],
-    ];
-  },
-});
-
-const layerListExpand = new Expand({
-  view: map.view,
-  content: layerListWidget,
-  expanded: true,
-  expandTooltip: "Active layer manager",
-});
-
 const mapToolsContainer = document.createElement("div");
 mapToolsContainer.className = "map-tools-expand-content";
 
@@ -400,11 +366,10 @@ const legendExpand = new Expand({
   expandTooltip: "Legend",
 });
 
-map.view.ui.add(new Home({ view: map.view }), "top-left");
-map.view.ui.add(new Compass({ view: map.view }), "top-left");
-map.view.ui.add(toolsExpand, "top-left");
-map.view.ui.add(legendExpand, "top-left");
-map.view.ui.add(layerListExpand, "top-right");
+map.view.ui.add(new Home({ view: map.view }), "top-right");
+map.view.ui.add(new Compass({ view: map.view }), "top-right");
+map.view.ui.add(toolsExpand, "top-right");
+map.view.ui.add(legendExpand, "top-right");
 
 let featureTable = new FeatureTable({
   view: map.view,
@@ -418,37 +383,6 @@ let featureTable = new FeatureTable({
       dataAction: false,
     },
   },
-});
-
-layerListWidget.on("trigger-action", (event) => {
-  const layer = event.item?.layer;
-  if (!layer) {
-    return;
-  }
-
-  if (event.action.id === "zoom") {
-    map.zoomToLayer(layer);
-  }
-
-  if (event.action.id === "inspect") {
-    const active = activeLayers.find((entry) => entry.layer.id === layer.id);
-    showInspector(
-      {
-        title: active?.meta.title || layer.title || layer.id,
-        owner: active?.meta.owner || "",
-        type: active?.meta.type || layer.type,
-        url: active?.meta.url || "",
-        visible: layer.visible ? "Yes" : "No",
-      },
-      "Layer Info",
-    );
-  }
-
-  if (event.action.id === "remove") {
-    map.removeLayer(layer.id);
-    activeLayers = activeLayers.filter((entry) => entry.layer.id !== layer.id);
-    renderUI();
-  }
 });
 
 const catalogList = new CustomLayerList(catalogContainer, renderCatalogItem);
@@ -530,7 +464,12 @@ map.view.on("click", async (event) => {
   if (active?.meta.url) {
     actions.push({
       label: "Open source",
-      onClick: () => window.open(active.meta.url, "_blank"),
+      onClick: () => {
+        const url = safeUrl(active.meta.url);
+        if (url) {
+          window.open(url, "_blank", "noreferrer");
+        }
+      },
     });
   }
 
@@ -575,20 +514,6 @@ function currentCatalog() {
       return tags.some((tag) => tag.includes(tagValue));
     });
   }
-  if (filterContentType) {
-    if (filterContentType === "layers") {
-      results = results.filter(
-        (item) =>
-          item.type === "Feature Service" || item.type === "Map Service",
-      );
-    } else if (filterContentType === "tables") {
-      results = results.filter(
-        (item) =>
-          item.type !== "Feature Service" && item.type !== "Map Service",
-      );
-    }
-  }
-
   return [...results].sort((a, b) => {
     if (sortBy === "default") {
       const aCategory = (a.categories || "").toLowerCase();
@@ -718,8 +643,8 @@ function handleTableOnlyService(meta, tables) {
     row.className = "inspector__table-option";
     row.innerHTML = `
       <div class="inspector__table-info">
-        <div class="inspector__table-name">${tableInfo.name}</div>
-        <div class="inspector__table-id">Table ID ${tableInfo.id}</div>
+        <div class="inspector__table-name">${escapeHtml(tableInfo.name)}</div>
+        <div class="inspector__table-id">Table ID ${escapeHtml(tableInfo.id)}</div>
       </div>
       <button class="inspector__button inspector__button--primary">Open table</button>
     `;
@@ -771,6 +696,7 @@ function openTableService(meta, tableInfo) {
   }
 
   switchTab("active");
+  renderActiveTables();
   renderTablePanel();
 }
 
@@ -894,24 +820,25 @@ function renderActiveItem(item) {
   card.className = "active-layer-card";
   card.id = `active-layer-${item.layer.id}`;
 
-  const title = item.meta.title || "Untitled layer";
-  const subtitle = `${item.meta.type || "Feature Service"}${item.meta.source ? ` · ${item.meta.source}` : item.meta.owner ? ` · ${item.meta.owner}` : ""}`;
+  const title = escapeHtml(item.meta.title || "Untitled layer");
+  const subtitle = `${item.meta.type || "Feature Service"}${item.meta.source ? ` / ${item.meta.source}` : item.meta.owner ? ` / ${item.meta.owner}` : ""}`;
   const tags = (item.meta.tags || "")
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
-  const description =
-    item.meta.description || item.meta.snippet || "No description available.";
+  const description = escapeHtml(
+    item.meta.description || item.meta.snippet || "No description available.",
+  );
 
   card.innerHTML = `
     <div class="active-layer-card__header">
       <div class="active-layer-card__text">
         <div class="active-layer-card__title">${title}</div>
-        <div class="active-layer-card__subtitle">${subtitle}</div>
+        <div class="active-layer-card__subtitle">${escapeHtml(subtitle)}</div>
       </div>
       <div class="active-layer-card__controls">
-        <button type="button" class="icon-button visibility-toggle" title="${item.visible ? "Hide layer" : "Show layer"}">${item.visible ? "👁" : "🚫"}</button>
-        <button type="button" class="icon-button menu-toggle" title="Actions">⋯</button>
+        <button type="button" class="icon-button visibility-toggle" title="${item.visible ? "Hide layer" : "Show layer"}" aria-label="${item.visible ? "Hide layer" : "Show layer"}">${item.visible ? "On" : "Off"}</button>
+        <button type="button" class="icon-button menu-toggle" title="Actions" aria-label="Layer actions" aria-expanded="false">...</button>
       </div>
     </div>
     <div class="active-layer-card__menu hidden">
@@ -923,7 +850,7 @@ function renderActiveItem(item) {
         <div class="active-layer-card__menu-label">Description</div>
         <div class="active-layer-card__menu-text">${description}</div>
       </div>
-      ${tags.length ? `<div class="active-layer-card__tags">${tags.map((tag) => `<span class="layer-card__tag">${tag}</span>`).join("")}</div>` : ""}
+      ${tags.length ? `<div class="active-layer-card__tags">${tags.map((tag) => `<span class="layer-card__tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
     </div>
   `;
 
@@ -942,7 +869,8 @@ function renderActiveItem(item) {
 
   menuButton.addEventListener("click", (event) => {
     event.stopPropagation();
-    menu.classList.toggle("hidden");
+    const expanded = menu.classList.toggle("hidden") === false;
+    menuButton.setAttribute("aria-expanded", String(expanded));
   });
 
   zoomButton.addEventListener("click", (event) => {
@@ -957,14 +885,16 @@ function renderActiveItem(item) {
 
   sourceLink.addEventListener("click", (event) => {
     event.stopPropagation();
-    const url = item.meta.url || "#";
-    if (url !== "#") {
-      window.open(url, "_blank");
+    event.preventDefault();
+    const url = safeUrl(item.meta.url);
+    if (url) {
+      window.open(url, "_blank", "noreferrer");
     }
   });
-  sourceLink.textContent = item.meta.url ? "Source" : "No source";
-  sourceLink.href = item.meta.url || "#";
-  sourceLink.classList.toggle("disabled", !item.meta.url);
+  const sourceUrl = safeUrl(item.meta.url);
+  sourceLink.textContent = sourceUrl ? "Source" : "No source";
+  sourceLink.href = sourceUrl || "#";
+  sourceLink.classList.toggle("disabled", !sourceUrl);
 
   removeButton.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -982,24 +912,35 @@ function renderActiveTableItem(tableMeta) {
   const card = document.createElement("div");
   card.className = "active-table-card";
 
-  const title = tableMeta.title || "Untitled table";
-  const subtitle = `${tableMeta.type || "Table"}${tableMeta.owner ? ` · ${tableMeta.owner}` : ""}`;
+  const title = escapeHtml(tableMeta.title || "Untitled table");
+  const subtitle = `${tableMeta.type || "Table"}${tableMeta.owner ? ` / ${tableMeta.owner}` : ""}`;
 
   card.innerHTML = `
     <div class="active-table-card__header">
       <div class="active-table-card__text">
         <div class="active-table-card__title">${title}</div>
-        <div class="active-table-card__subtitle">${subtitle}</div>
+        <div class="active-table-card__subtitle">${escapeHtml(subtitle)}</div>
       </div>
       <div class="active-table-card__controls">
-        <button type="button" class="icon-button table-toggle" title="Open table">📊</button>
-        <button type="button" class="icon-button remove-table" title="Remove table">✕</button>
+        <button type="button" class="icon-button table-menu-toggle" title="Table actions" aria-label="Table actions" aria-expanded="false">...</button>
       </div>
+    </div>
+    <div class="active-table-card__menu hidden">
+      <button type="button" class="inspector__button inspector__button--secondary action-button table-toggle">Open table</button>
+      <button type="button" class="inspector__button inspector__button--secondary action-button remove-table">Remove</button>
     </div>
   `;
 
+  const menuButton = card.querySelector(".table-menu-toggle");
+  const menu = card.querySelector(".active-table-card__menu");
   const tableButton = card.querySelector(".table-toggle");
   const removeButton = card.querySelector(".remove-table");
+
+  menuButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const expanded = menu.classList.toggle("hidden") === false;
+    menuButton.setAttribute("aria-expanded", String(expanded));
+  });
 
   tableButton.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1038,6 +979,7 @@ function prepareTable(item) {
     activeTables.push(item.meta);
   }
 
+  renderActiveTables();
   renderTablePanel();
   switchTab("active");
 }
