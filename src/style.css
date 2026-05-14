@@ -1417,7 +1417,7 @@ select:focus-visible,
 }
 
 .splash-overlay__card {
-  width: min(520px, 100%);
+  width: min(560px, 100%);
   border-radius: 16px;
   border: 1px solid rgba(125,211,252,0.22);
   background: linear-gradient(180deg, rgba(12, 18, 29, 0.98), rgba(8, 12, 20, 0.97));
@@ -1446,9 +1446,9 @@ select:focus-visible,
 
 .splash-overlay__card h1 {
   margin: 0;
-  font-size: clamp(1.65rem, 3.4vw, 2.45rem);
-  line-height: 1.08;
-  max-width: 430px;
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+  line-height: 1.12;
+  max-width: 480px;
 }
 
 .splash-overlay__close {
@@ -1465,7 +1465,7 @@ select:focus-visible,
 
 .splash-overlay__body {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   color: rgba(255,255,255,0.82);
   font-size: 0.98rem;
   line-height: 1.55;
@@ -1492,14 +1492,15 @@ select:focus-visible,
 
 .splash-overlay__footer {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: flex-end;
   margin-top: 18px;
 }
 
-.splash-overlay__enter {
+.splash-overlay__enter,
+.splash-overlay__learn {
   border: none;
-  background: #58c7ff;
-  color: #08101f;
   padding: 12px 18px;
   min-height: 44px;
   border-radius: 10px;
@@ -1508,8 +1509,67 @@ select:focus-visible,
   margin-top: 0;
 }
 
+.splash-overlay__enter {
+  background: #58c7ff;
+  color: #08101f;
+}
+
+.splash-overlay__learn {
+  border: 1px solid rgba(125,211,252,0.2);
+  background: rgba(255,255,255,0.08);
+  color: #f7fbff;
+}
+
 .splash-overlay__enter:hover {
   background: #3aa2db;
+}
+
+.splash-overlay__learn:hover {
+  background: rgba(88,199,255,0.16);
+}
+
+.project-notes {
+  display: grid;
+  gap: 14px;
+}
+
+.project-notes__section {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(125,211,252,0.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.035);
+}
+
+.project-notes__section h4 {
+  margin: 0;
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #bae6fd;
+}
+
+.project-notes__section p {
+  margin: 0;
+  color: rgba(247,251,255,0.78);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.project-notes__lede {
+  color: #f7fbff !important;
+  font-size: 0.98rem !important;
+}
+
+.project-notes__section ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 18px;
+  color: rgba(247,251,255,0.78);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .table-toggle-floating {

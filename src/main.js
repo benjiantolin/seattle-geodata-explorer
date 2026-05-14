@@ -37,6 +37,13 @@ if (splashOverlay) {
   splashOverlay
     .querySelector(".splash-overlay__enter")
     ?.addEventListener("click", hideSplash);
+  splashOverlay
+    .querySelector(".splash-overlay__learn")
+    ?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      hideSplash();
+      openProjectNotes();
+    });
 }
 
 // Set custom attribution
@@ -102,7 +109,7 @@ header.innerHTML = `
   <div class="sidebar__brand">
     <div class="sidebar__brand-copy">
       <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
-      <div class="sidebar__brand-subtitle">Explore Seattle ArcGIS services by category, source, tag and date.</div>
+      <div class="sidebar__brand-subtitle">Discover, map, and inspect Seattle public GIS datasets from one catalog-driven workspace.</div>
     </div>
   </div>
   <div class="sidebar__toolbar">
@@ -353,24 +360,12 @@ tableToggleButton.addEventListener("click", () => {
 });
 app.appendChild(tableToggleButton);
 
-const mapToolsContainer = document.createElement("div");
-mapToolsContainer.className = "map-tools-expand-content";
-
-const searchContainer = document.createElement("div");
-searchContainer.className = "map-tools-widget";
 const basemapContainer = document.createElement("div");
 basemapContainer.className = "map-tools-widget";
 const measurementContainer = document.createElement("div");
 measurementContainer.className = "map-tools-widget";
-const scaleBarContainer = document.createElement("div");
-scaleBarContainer.className = "map-tools-widget";
 
-mapToolsContainer.appendChild(searchContainer);
-mapToolsContainer.appendChild(basemapContainer);
-mapToolsContainer.appendChild(measurementContainer);
-mapToolsContainer.appendChild(scaleBarContainer);
-
-const searchWidget = new Search({ view: map.view, container: searchContainer });
+const searchWidget = new Search({ view: map.view });
 const basemapGallery = new BasemapGallery({
   view: map.view,
   container: basemapContainer,
@@ -379,13 +374,20 @@ const measurement = new Measurement({
   view: map.view,
   container: measurementContainer,
 });
-const scaleBar = new ScaleBar({ view: map.view, container: scaleBarContainer });
+const scaleBar = new ScaleBar({ view: map.view });
 
-const toolsExpand = new Expand({
+const basemapExpand = new Expand({
   view: map.view,
-  content: mapToolsContainer,
+  content: basemapContainer,
   expanded: false,
-  expandTooltip: "Map tools",
+  expandTooltip: "Basemaps",
+});
+
+const measurementExpand = new Expand({
+  view: map.view,
+  content: measurementContainer,
+  expanded: false,
+  expandTooltip: "Measurement tools",
 });
 
 const legend = new Legend({ view: map.view });
@@ -396,10 +398,13 @@ const legendExpand = new Expand({
   expandTooltip: "Legend",
 });
 
+map.view.ui.add(searchWidget, "top-right");
 map.view.ui.add(new Home({ view: map.view }), "top-right");
-map.view.ui.add(new Compass({ view: map.view }), "top-right");
-map.view.ui.add(toolsExpand, "top-right");
+map.view.ui.add(basemapExpand, "top-right");
+map.view.ui.add(measurementExpand, "top-right");
 map.view.ui.add(legendExpand, "top-right");
+map.view.ui.add(scaleBar, "top-right");
+map.view.ui.add(new Compass({ view: map.view }), "top-right");
 
 let featureTable = new FeatureTable({
   view: map.view,
@@ -426,23 +431,49 @@ renderUI();
 
 const projectInfoButton = header.querySelector("#projectInfoButton");
 projectInfoButton.addEventListener("click", () => {
-  showInspector(
-    {
-      Project: "Seattle GeoData Explorer",
-      Purpose:
-        "Interactive discovery of Seattle open data services. Built for WAGISA Map Contest.",
-      Inspiration: "Dev Summit and Seattle Public Utilities Utiliview rebuild.",
-      Tech: "Vite + ArcGIS SDK for custom web apps with reusable components.",
-      "Data Source":
-        "Single CSV export from data-seattlecitygis.opendata.arcgis.com",
-      "Built With": "GitHub Copilot AI assistance in 3 evenings",
-      "How to use":
-        "Browse, load, manage, and inspect layers. Add a layer to the table on demand.",
-      "Submit by": "May 12, 2026 noon",
-    },
-    "Project Info",
-  );
+  openProjectNotes();
 });
+
+function openProjectNotes() {
+  const notes = document.createElement("div");
+  notes.className = "project-notes";
+  notes.innerHTML = `
+    <section class="project-notes__section">
+      <p class="project-notes__lede">Seattle GeoData Explorer is a prototype for modern geospatial data interaction. It explores what becomes possible when an open data catalog becomes part of the mapping experience itself.</p>
+    </section>
+    <section class="project-notes__section">
+      <h4>Overview</h4>
+      <p>The app brings civic open data discovery, dynamic layer loading, interactive mapping, and table exploration into one lightweight workspace for Seattle public GIS data.</p>
+    </section>
+    <section class="project-notes__section">
+      <h4>Technical Approach</h4>
+      <p>Built with Vite and the ArcGIS Maps SDK for JavaScript, the application uses catalog-style metadata to help users identify datasets, load layers into the map, and inspect spatial and attribute information through a focused custom interface informed by ArcGIS Web Components and Calcite-style UI patterns.</p>
+    </section>
+    <section class="project-notes__section">
+      <h4>Inspiration</h4>
+      <p>The project was shaped by modern web GIS patterns highlighted at the 2026 Esri Developer & Technology Summit, including web components, Calcite-style UI patterns, modular front-end architecture, and custom geospatial user experience design.</p>
+    </section>
+    <section class="project-notes__section">
+      <h4>Rapid Prototyping</h4>
+      <p>AI coding assistants supported the development workflow by accelerating iteration and helping test interface ideas quickly. The goal was to pair AI-assisted speed with GIS development judgment, not to replace it.</p>
+    </section>
+    <section class="project-notes__section">
+      <h4>What You Can Explore</h4>
+      <ul>
+        <li>Browse Seattle public GIS datasets from a catalog-driven interface.</li>
+        <li>Load selected datasets directly into an interactive web map.</li>
+        <li>Inspect spatial features and attribute information through a dynamic table experience.</li>
+        <li>Test a prototype for reimagining open data discovery as an interactive geospatial workspace.</li>
+      </ul>
+    </section>
+    <section class="project-notes__section">
+      <h4>Vision</h4>
+      <p>At its core, Seattle GeoData Explorer asks how civic GIS data could feel more immediate, visual, and interactive.</p>
+    </section>
+  `;
+
+  showInspector({}, "Project Notes", notes);
+}
 
 document.addEventListener("click", (event) => {
   const inspector = document.getElementById("inspector");

@@ -46,14 +46,13 @@ export function showInspector(
     panel.appendChild(extraNode);
   }
 
+  const entries = Object.entries(attributes).filter(
+    ([, value]) => value != null && value !== "",
+  );
   const detailList = document.createElement("div");
   detailList.className = "inspector__details";
 
-  Object.entries(attributes).forEach(([key, value]) => {
-    if (value == null || value === "") {
-      return;
-    }
-
+  entries.forEach(([key, value]) => {
     const row = document.createElement("div");
     row.className = "inspector__detail-row";
 
@@ -83,5 +82,7 @@ export function showInspector(
     detailList.appendChild(row);
   });
 
-  panel.appendChild(detailList);
+  if (entries.length) {
+    panel.appendChild(detailList);
+  }
 }
