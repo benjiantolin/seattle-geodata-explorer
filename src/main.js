@@ -41,6 +41,10 @@ if (splashOverlay) {
 
 // Set custom attribution
 map.view.when(() => {
+  if (!map.view.attribution) {
+    return;
+  }
+
   const existingAttribution = map.view.attribution.text;
   map.view.attribution.text = `${existingAttribution} | Built with ☕ by Benji`;
 });

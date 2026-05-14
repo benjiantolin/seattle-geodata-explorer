@@ -45,6 +45,12 @@ export function createLayerCard(meta, actions = {}, options = {}) {
   const tagChips = tagList.length
     ? `<div class="layer-card__tags">${tagList.map((tag) => `<span class="layer-card__tag">${escapeHtml(tag)}</span>`).join("")}</div>`
     : "";
+  const createdLabel = created
+    ? `<div class="layer-card__date">${escapeHtml(created)}</div>`
+    : "";
+  const categoryLine = displayCategories
+    ? `<div class="layer-card__categories">${displayCategories}</div>`
+    : "";
 
   div.innerHTML = `
     <div class="layer-card__info">
