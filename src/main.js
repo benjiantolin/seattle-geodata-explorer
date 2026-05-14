@@ -2,7 +2,7 @@ import "./style.css";
 
 import { MapController } from "./map/mapController.js";
 import { createLayerFromMetadata } from "./map/layerFactory.js";
-import { showInspector } from "./map/inspector.js";
+import { hideInspector, showInspector } from "./map/inspector.js";
 
 import Expand from "@arcgis/core/widgets/Expand";
 import FeatureTable from "@arcgis/core/widgets/FeatureTable";
@@ -59,10 +59,12 @@ let filterType = "";
 let filterCategory = "";
 let filterSource = "";
 let filterTag = "";
+const catalogTableChoices = new Map();
 let tableState = {
   layerMeta: null,
   layer: null,
   visible: false,
+  mode: "normal",
   loaded: false,
   columns: [],
   rows: [],
@@ -275,17 +277,25 @@ const tablePanel = document.createElement("div");
 tablePanel.className = "sidebar__table-panel hidden";
 tablePanel.innerHTML = `
   <div class="sidebar__table-header">
-    <div>
+    <div class="sidebar__table-heading">
       <div class="sidebar__table-title">Layer Table</div>
       <div class="sidebar__table-subtitle">Browse attributes in a native ArcGIS table view.</div>
     </div>
-    <button type="button" class="sidebar__table-toggle">Hide</button>
+    <div class="sidebar__table-actions">
+      <button type="button" class="sidebar__table-icon-button sidebar__table-fullscreen" title="Fullscreen table" aria-label="Open fullscreen table" aria-pressed="false">
+        <span class="table-icon table-icon--expand" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
+      </button>
+      <button type="button" class="sidebar__table-icon-button sidebar__table-toggle" title="Hide table" aria-label="Hide table">
+        <span class="table-icon table-icon--minimize" aria-hidden="true"></span>
+      </button>
+    </div>
   </div>
   <div class="sidebar__table-info">
     <div class="sidebar__table-layer">No table loaded</div>
     <div class="sidebar__table-message">Select a loaded feature layer and tap Table.</div>
   </div>
   <div class="sidebar__table-body"></div>
+  <div class="sidebar__table-resize-handle" aria-hidden="true"></div>
 `;
 
 tablePanel
@@ -294,6 +304,26 @@ tablePanel
     tableState.visible = !tableState.visible;
     renderTablePanel();
   });
+
+tablePanel
+  .querySelector(".sidebar__table-fullscreen")
+  .addEventListener("click", () => {
+    tableState.mode =
+      tableState.mode === "fullscreen" ? "normal" : "fullscreen";
+    resetTablePanelPosition();
+    renderTablePanel();
+  });
+
+const tableHeader = tablePanel.querySelector(".sidebar__table-header");
+tableHeader.addEventListener("pointerdown", startTablePanelDrag);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && tableState.mode === "fullscreen") {
+    tableState.mode = "normal";
+    resetTablePanelPosition();
+    renderTablePanel();
+  }
+});
 
 sidebar.appendChild(header);
 sidebar.appendChild(controls);
@@ -412,6 +442,17 @@ projectInfoButton.addEventListener("click", () => {
     },
     "Project Info",
   );
+});
+
+document.addEventListener("click", (event) => {
+  const inspector = document.getElementById("inspector");
+  if (
+    inspector?.style.display === "block" &&
+    !event.target.closest("#inspector") &&
+    !event.target.closest("#projectInfoButton")
+  ) {
+    hideInspector();
+  }
 });
 
 const shareButton = header.querySelector("#shareButton");
@@ -611,68 +652,36 @@ async function handleAddLayer(meta) {
 }
 
 function handleTableOnlyService(meta, tables) {
+  hideInspector();
+
   if (!tables.length) {
-    showInspector(
-      {
-        Layer: meta.title,
-        Status: "No table data available",
-      },
-      "Table Service",
-    );
+    window.alert("No table data is available for this service.");
     return;
   }
 
   if (tables.length === 1) {
     openTableService(meta, tables[0]);
-    showInspector(
-      {
-        Service: meta.title,
-        Table: tables[0].name,
-        Status: "Only tabular data available. Table view opened.",
-      },
-      "Tabular Data",
-    );
     return;
   }
 
-  const selector = document.createElement("div");
-  selector.className = "inspector__table-selector";
+  catalogTableChoices.set(getDatasetKey(meta), tables);
+  renderCatalog();
 
-  tables.forEach((tableInfo) => {
-    const row = document.createElement("div");
-    row.className = "inspector__table-option";
-    row.innerHTML = `
-      <div class="inspector__table-info">
-        <div class="inspector__table-name">${escapeHtml(tableInfo.name)}</div>
-        <div class="inspector__table-id">Table ID ${escapeHtml(tableInfo.id)}</div>
-      </div>
-      <button class="inspector__button inspector__button--primary">Open table</button>
-    `;
-    row.querySelector("button").addEventListener("click", () => {
-      openTableService(meta, tableInfo);
-      showInspector(
-        {
-          Service: meta.title,
-          Table: tableInfo.name,
-          Status: "Table view opened for selected table.",
-        },
-        "Tabular Data",
-      );
-    });
-    selector.appendChild(row);
+  requestAnimationFrame(() => {
+    const card = document.querySelector(
+      `[data-dataset-key="${CSS.escape(getDatasetKey(meta))}"]`,
+    );
+    const menu = card?.querySelector(".layer-card__menu");
+    const toggle = card?.querySelector(".layer-card__menu-toggle");
+    menu?.classList.remove("hidden");
+    toggle?.setAttribute("aria-expanded", "true");
+    card?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
-
-  showInspector(
-    {
-      Service: meta.title,
-      Status: "This is a table-only FeatureServer. Choose a table to inspect.",
-    },
-    "Table-only Service",
-    selector,
-  );
 }
 
 function openTableService(meta, tableInfo) {
+  hideInspector();
+
   tableState.layerMeta = {
     title: `${meta.title} — ${tableInfo.name}`,
     owner: meta.owner,
@@ -718,6 +727,7 @@ function handleRemoveLayer(meta) {
       layerMeta: null,
       layer: null,
       visible: false,
+      mode: tableState.mode || "normal",
       loaded: false,
       columns: [],
       rows: [],
@@ -737,10 +747,12 @@ function clearAllLayers() {
     layerMeta: null,
     layer: null,
     visible: false,
+    mode: "normal",
     loaded: false,
     columns: [],
     rows: [],
   };
+  resetTablePanelPosition();
   renderUI();
 }
 
@@ -791,26 +803,21 @@ function scrollToActiveLayer(layerId) {
 
 function renderCatalogItem(meta) {
   const active = isLayerActive(meta);
+  const datasetKey = getDatasetKey(meta);
+  const tableChoices = catalogTableChoices.get(datasetKey) || [];
   return createLayerCard(
     meta,
     {
       primary: active ? handleRemoveLayer : handleAddLayer,
     },
     {
-      primaryText: active ? "Remove" : "Add",
+      primaryText: tableChoices.length ? "Tables" : active ? "Remove" : "Add",
       active,
       variant: "portal",
-      onCardClick: () =>
-        showInspector(
-          {
-            title: meta.title,
-            owner: meta.owner,
-            type: meta.type,
-            url: meta.url,
-            description: meta.description,
-          },
-          "Feature Service Metadata",
-        ),
+      datasetKey,
+      tableChoices,
+      primaryOpensMenu: tableChoices.length > 0,
+      onTableOpen: openTableService,
     },
   );
 }
@@ -829,6 +836,10 @@ function renderActiveItem(item) {
   const description = escapeHtml(
     item.meta.description || item.meta.snippet || "No description available.",
   );
+  const opacity =
+    typeof item.layer.opacity === "number" ? item.layer.opacity : 1;
+  const owner = escapeHtml(item.meta.owner || item.meta.source || "Seattle GIS");
+  const type = escapeHtml(item.meta.type || "Layer");
 
   card.innerHTML = `
     <div class="active-layer-card__header">
@@ -846,6 +857,17 @@ function renderActiveItem(item) {
       <button type="button" class="inspector__button inspector__button--secondary action-button">View table</button>
       <a class="inspector__button inspector__button--secondary action-button" target="_blank" rel="noreferrer">Source</a>
       <button type="button" class="inspector__button inspector__button--secondary action-button">Remove</button>
+      <div class="active-layer-card__setting">
+        <label class="active-layer-card__setting-label">
+          <span>Opacity</span>
+          <span class="active-layer-card__setting-value">${Math.round(opacity * 100)}%</span>
+        </label>
+        <input type="range" min="0" max="1" step="0.05" value="${opacity}" class="active-layer-card__opacity" aria-label="Layer opacity" />
+      </div>
+      <div class="active-layer-card__metadata">
+        <div><span>Type</span>${type}</div>
+        <div><span>Owner</span>${owner}</div>
+      </div>
       <div class="active-layer-card__meta-block">
         <div class="active-layer-card__menu-label">Description</div>
         <div class="active-layer-card__menu-text">${description}</div>
@@ -861,6 +883,8 @@ function renderActiveItem(item) {
   const tableButton = card.querySelectorAll(".action-button")[1];
   const sourceLink = card.querySelectorAll(".action-button")[2];
   const removeButton = card.querySelectorAll(".action-button")[3];
+  const opacityInput = card.querySelector(".active-layer-card__opacity");
+  const opacityValue = card.querySelector(".active-layer-card__setting-value");
 
   visibilityButton.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -899,6 +923,17 @@ function renderActiveItem(item) {
   removeButton.addEventListener("click", (event) => {
     event.stopPropagation();
     handleRemoveLayer(item.meta);
+  });
+
+  opacityInput?.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  opacityInput?.addEventListener("input", (event) => {
+    event.stopPropagation();
+    const alpha = Number(event.target.value);
+    item.layer.opacity = alpha;
+    opacityValue.textContent = `${Math.round(alpha * 100)}%`;
   });
 
   card.addEventListener("click", () => {
@@ -986,11 +1021,43 @@ function prepareTable(item) {
 
 function renderTablePanel() {
   const toggle = tablePanel.querySelector(".sidebar__table-toggle");
+  const fullscreenButton = tablePanel.querySelector(
+    ".sidebar__table-fullscreen",
+  );
+  const fullscreenIcon = fullscreenButton.querySelector(".table-icon");
   const tableInfo = tablePanel.querySelector(".sidebar__table-layer");
   const tableMessage = tablePanel.querySelector(".sidebar__table-message");
 
   tablePanel.classList.toggle("hidden", !tableState.visible);
+  tablePanel.classList.toggle(
+    "sidebar__table-panel--fullscreen",
+    tableState.mode === "fullscreen",
+  );
   toggle.textContent = tableState.visible ? "Hide" : "Show table";
+  toggle.setAttribute(
+    "aria-label",
+    tableState.visible ? "Hide table" : "Show table",
+  );
+  fullscreenButton.setAttribute(
+    "aria-pressed",
+    String(tableState.mode === "fullscreen"),
+  );
+  fullscreenButton.setAttribute(
+    "aria-label",
+    tableState.mode === "fullscreen"
+      ? "Exit fullscreen table"
+      : "Open fullscreen table",
+  );
+  fullscreenButton.title =
+    tableState.mode === "fullscreen" ? "Exit fullscreen" : "Fullscreen table";
+  fullscreenIcon.classList.toggle(
+    "table-icon--expand",
+    tableState.mode !== "fullscreen",
+  );
+  fullscreenIcon.classList.toggle(
+    "table-icon--restore",
+    tableState.mode === "fullscreen",
+  );
 
   // Show floating button if table is hidden but there are active tables
   tableToggleButton.classList.toggle(
@@ -1019,46 +1086,52 @@ function renderTablePanel() {
   }
 }
 
-function showLayerSettings(item) {
-  const layer = item.layer;
-  const attributes = {
-    title: item.meta.title,
-    owner: item.meta.owner,
-    type: item.meta.type,
-    visible: item.visible ? "Yes" : "No",
-    url: item.meta.url,
-  };
+function resetTablePanelPosition() {
+  tablePanel.style.left = "";
+  tablePanel.style.top = "";
+  tablePanel.style.right = "";
+  tablePanel.style.bottom = "";
+  tablePanel.style.width = "";
+  tablePanel.style.height = "";
+}
 
-  const controls = document.createElement("div");
-  controls.className = "inspector__controls";
-
-  if (typeof layer.opacity !== "undefined") {
-    const opacityRow = document.createElement("div");
-    opacityRow.className = "inspector__control-row";
-    opacityRow.innerHTML = `
-      <label>Opacity <span class="inspector__control-value">${layer.opacity}</span></label>
-      <input type="range" min="0" max="1" step="0.05" value="${layer.opacity}" class="inspector__slider" />
-    `;
-    const slider = opacityRow.querySelector("input");
-    const valueSpan = opacityRow.querySelector(".inspector__control-value");
-    slider.addEventListener("input", (event) => {
-      const alpha = Number(event.target.value);
-      layer.opacity = alpha;
-      valueSpan.textContent = alpha.toFixed(2);
-    });
-    controls.appendChild(opacityRow);
+function startTablePanelDrag(event) {
+  if (
+    tableState.mode === "fullscreen" ||
+    event.button !== 0 ||
+    event.target.closest("button")
+  ) {
+    return;
   }
 
-  const activeButtonRow = document.createElement("div");
-  activeButtonRow.className = "inspector__control-row";
-  activeButtonRow.innerHTML = `
-    <button class="inspector__button inspector__button--secondary">Show in active layers</button>
-  `;
-  const activeButton = activeButtonRow.querySelector("button");
-  activeButton.addEventListener("click", () => {
-    scrollToActiveLayer(layer.id);
-  });
-  controls.appendChild(activeButtonRow);
+  const rect = tablePanel.getBoundingClientRect();
+  const offsetX = event.clientX - rect.left;
+  const offsetY = event.clientY - rect.top;
+  tablePanel.classList.add("sidebar__table-panel--dragging");
+  tablePanel.style.left = `${rect.left}px`;
+  tablePanel.style.top = `${rect.top}px`;
+  tablePanel.style.right = "auto";
+  tablePanel.style.bottom = "auto";
+  tablePanel.style.width = `${rect.width}px`;
+  tablePanel.style.height = `${rect.height}px`;
+  tableHeader.setPointerCapture(event.pointerId);
 
-  showInspector(attributes, "Layer Metadata", controls);
+  const handleMove = (moveEvent) => {
+    const maxLeft = window.innerWidth - rect.width - 12;
+    const maxTop = window.innerHeight - rect.height - 12;
+    const nextLeft = Math.min(Math.max(12, moveEvent.clientX - offsetX), maxLeft);
+    const nextTop = Math.min(Math.max(12, moveEvent.clientY - offsetY), maxTop);
+    tablePanel.style.left = `${nextLeft}px`;
+    tablePanel.style.top = `${nextTop}px`;
+  };
+
+  const handleUp = () => {
+    tablePanel.classList.remove("sidebar__table-panel--dragging");
+    tableHeader.releasePointerCapture(event.pointerId);
+    window.removeEventListener("pointermove", handleMove);
+    window.removeEventListener("pointerup", handleUp);
+  };
+
+  window.addEventListener("pointermove", handleMove);
+  window.addEventListener("pointerup", handleUp);
 }

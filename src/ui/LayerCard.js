@@ -4,6 +4,9 @@ export function createLayerCard(meta, actions = {}, options = {}) {
   const variant = options.variant || "default";
   const div = document.createElement("div");
   div.className = `layer-card layer-card--${variant}`;
+  if (options.datasetKey) {
+    div.dataset.datasetKey = options.datasetKey;
+  }
   if (options.active) {
     div.classList.add("layer-card--active");
   }
@@ -45,6 +48,26 @@ export function createLayerCard(meta, actions = {}, options = {}) {
   const tagChips = tagList.length
     ? `<div class="layer-card__tags">${tagList.map((tag) => `<span class="layer-card__tag">${escapeHtml(tag)}</span>`).join("")}</div>`
     : "";
+  const tableChoices = Array.isArray(options.tableChoices)
+    ? options.tableChoices
+    : [];
+  const tableChooser = tableChoices.length
+    ? `
+      <div class="layer-card__table-picker" aria-label="Available tables">
+        <div class="layer-card__menu-label">Tables</div>
+        ${tableChoices
+          .map(
+            (table) => `
+              <button type="button" class="layer-card__table-option" data-table-id="${escapeHtml(table.id)}">
+                <span>${escapeHtml(table.name || `Table ${table.id}`)}</span>
+                <small>Table ${escapeHtml(table.id)}</small>
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+    `
+    : "";
   const createdLabel = created
     ? `<div class="layer-card__created">Created ${escapeHtml(created)}</div>`
     : "";
@@ -66,6 +89,7 @@ export function createLayerCard(meta, actions = {}, options = {}) {
     </div>
     <div class="layer-card__menu hidden">
       <div class="layer-card__description">${description}</div>
+      ${tableChooser}
       ${categoryLine}
       ${createdLabel}
       ${tagChips}
@@ -84,6 +108,11 @@ export function createLayerCard(meta, actions = {}, options = {}) {
     primary.textContent = options.primaryText;
     primary.addEventListener("click", (event) => {
       event.stopPropagation();
+      if (options.primaryOpensMenu) {
+        const expanded = menu.classList.toggle("hidden") === false;
+        menuToggle.setAttribute("aria-expanded", String(expanded));
+        return;
+      }
       actions.primary?.(meta);
     });
     buttonContainer.appendChild(primary);
@@ -115,6 +144,18 @@ export function createLayerCard(meta, actions = {}, options = {}) {
     event.stopPropagation();
     const expanded = menu.classList.toggle("hidden") === false;
     menuToggle.setAttribute("aria-expanded", String(expanded));
+  });
+
+  div.querySelectorAll(".layer-card__table-option").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const table = tableChoices.find(
+        (choice) => String(choice.id) === button.dataset.tableId,
+      );
+      if (table) {
+        options.onTableOpen?.(meta, table);
+      }
+    });
   });
 
   if (typeof options.onCardClick === "function") {

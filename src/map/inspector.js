@@ -1,20 +1,30 @@
 import { escapeHtml, safeUrl } from "../utils/escapeHtml.js";
 
-export function showInspector(attributes, heading = "Attributes", extraNode = null, actions = []) {
+export function hideInspector() {
+  const panel = document.getElementById("inspector");
+  if (panel) {
+    panel.style.display = "none";
+  }
+}
+
+export function showInspector(
+  attributes,
+  heading = "Attributes",
+  extraNode = null,
+  actions = [],
+) {
   const panel = document.getElementById("inspector");
   panel.style.display = "block";
 
   panel.innerHTML = `
     <div class="inspector__header">
       <h3>${escapeHtml(heading)}</h3>
-      <button type="button" class="inspector__close">×</button>
+      <button type="button" class="inspector__close" aria-label="Close panel">x</button>
     </div>
   `;
 
   const closeBtn = panel.querySelector(".inspector__close");
-  closeBtn.addEventListener("click", () => {
-    panel.style.display = "none";
-  });
+  closeBtn.addEventListener("click", hideInspector);
 
   if (actions.length) {
     const actionsBar = document.createElement("div");
@@ -36,17 +46,22 @@ export function showInspector(attributes, heading = "Attributes", extraNode = nu
     panel.appendChild(extraNode);
   }
 
-  const table = document.createElement("table");
-  table.style.width = "100%";
+  const detailList = document.createElement("div");
+  detailList.className = "inspector__details";
 
   Object.entries(attributes).forEach(([key, value]) => {
-    const row = document.createElement("tr");
-    const keyCell = document.createElement("td");
-    const valueCell = document.createElement("td");
+    if (value == null || value === "") {
+      return;
+    }
+
+    const row = document.createElement("div");
+    row.className = "inspector__detail-row";
+
+    const keyCell = document.createElement("div");
+    const valueCell = document.createElement("div");
 
     keyCell.className = "inspector__key";
     valueCell.className = "inspector__value";
-
     keyCell.textContent = key;
 
     const cleanUrl = key === "url" ? safeUrl(value) : "";
@@ -60,13 +75,13 @@ export function showInspector(attributes, heading = "Attributes", extraNode = nu
       link.textContent = cleanUrl;
       valueCell.appendChild(link);
     } else {
-      valueCell.textContent = value != null ? String(value) : "—";
+      valueCell.textContent = String(value);
     }
 
     row.appendChild(keyCell);
     row.appendChild(valueCell);
-    table.appendChild(row);
+    detailList.appendChild(row);
   });
 
-  panel.appendChild(table);
+  panel.appendChild(detailList);
 }
