@@ -9,7 +9,6 @@ import FeatureTable from "@arcgis/core/widgets/FeatureTable";
 import BasemapGallery from "@arcgis/core/widgets/BasemapGallery";
 import Search from "@arcgis/core/widgets/Search";
 import ScaleBar from "@arcgis/core/widgets/ScaleBar";
-import Measurement from "@arcgis/core/widgets/Measurement";
 import Compass from "@arcgis/core/widgets/Compass";
 import Legend from "@arcgis/core/widgets/Legend";
 import Home from "@arcgis/core/widgets/Home";
@@ -453,18 +452,13 @@ app.appendChild(tablePanel);
 
 const basemapContainer = document.createElement("div");
 basemapContainer.className = "map-tools-widget";
-const measurementContainer = document.createElement("div");
-measurementContainer.className = "map-tools-widget";
 
 const searchWidget = new Search({ view: map.view });
 const basemapGallery = new BasemapGallery({
   view: map.view,
   container: basemapContainer,
 });
-const measurement = new Measurement({
-  view: map.view,
-  container: measurementContainer,
-});
+
 const scaleBar = new ScaleBar({ view: map.view });
 
 const basemapExpand = new Expand({
@@ -472,13 +466,7 @@ const basemapExpand = new Expand({
   content: basemapContainer,
   expanded: false,
   expandTooltip: "Basemaps",
-});
-
-const measurementExpand = new Expand({
-  view: map.view,
-  content: measurementContainer,
-  expanded: false,
-  expandTooltip: "Measurement tools",
+  expandIcon: "basemap",
 });
 
 const legend = new Legend({ view: map.view });
@@ -487,12 +475,12 @@ const legendExpand = new Expand({
   content: legend,
   expanded: false,
   expandTooltip: "Legend",
+  expandIcon: "legend",
 });
 
 map.view.ui.add(searchWidget, "top-right");
 map.view.ui.add(new Home({ view: map.view }), "top-right");
 map.view.ui.add(basemapExpand, "top-right");
-map.view.ui.add(measurementExpand, "top-right");
 map.view.ui.add(legendExpand, "top-right");
 map.view.ui.add(scaleBar, "bottom-right");
 map.view.ui.add(new Compass({ view: map.view }), "top-right");
