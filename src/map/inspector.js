@@ -1,4 +1,6 @@
 import { escapeHtml, safeUrl } from "../utils/escapeHtml.js";
+import { faCircleXmark } from "@fortawesome/free-regular-svg-icons";
+import { renderIcon } from "../utils/icons.js";
 
 export function hideInspector() {
   const panel = document.getElementById("inspector");
@@ -15,11 +17,13 @@ export function showInspector(
 ) {
   const panel = document.getElementById("inspector");
   panel.style.display = "block";
+  const closeLabel =
+    heading === "Feature Details" ? "Close feature details" : "Close panel";
 
   panel.innerHTML = `
     <div class="inspector__header">
       <h3>${escapeHtml(heading)}</h3>
-      <button type="button" class="inspector__close" aria-label="Close panel">x</button>
+      <button type="button" class="inspector__close" aria-label="${closeLabel}" title="${closeLabel}">${renderIcon(faCircleXmark)}</button>
     </div>
   `;
 

@@ -14,11 +14,39 @@ import Compass from "@arcgis/core/widgets/Compass";
 import Legend from "@arcgis/core/widgets/Legend";
 import Home from "@arcgis/core/widgets/Home";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer";
+import {
+  faCircleInfo,
+  faAngleUp,
+  faEllipsis,
+  faEye,
+  faEyeSlash,
+  faMinimize,
+  faRightFromBracket,
+  faRightToBracket,
+  faShareFromSquare,
+  faWindowMinimize,
+} from "@fortawesome/free-solid-svg-icons";
+import { faCircleXmark } from "@fortawesome/free-regular-svg-icons";
+import { faGithub, faLinkedin } from "@fortawesome/free-brands-svg-icons";
 
 import { SearchBar } from "./ui/SearchBar.js";
 import { LayerList as CustomLayerList } from "./ui/LayerList.js";
 import { createLayerCard } from "./ui/LayerCard.js";
+import {
+  buildFilterOptions,
+  cleanOwnerLabel,
+  cleanCategoryLabel,
+  getCategories,
+  getDisplayOwner,
+  getOwnerFilterValue,
+  getTags,
+  getTypeLabel,
+  getTypeValue,
+  getUnsupportedReason,
+  isWebLoadableCatalogItem,
+} from "./utils/catalogMetadata.js";
 import { escapeHtml, safeUrl } from "./utils/escapeHtml.js";
+import { renderIcon, setIcon } from "./utils/icons.js";
 
 import { searchCatalog, getAllCatalog } from "./services/metadataService.js";
 
@@ -27,6 +55,7 @@ const sidebar = document.getElementById("sidebar");
 const app = document.getElementById("app");
 const splashOverlay = document.getElementById("splashOverlay");
 if (splashOverlay) {
+  setIcon(splashOverlay.querySelector(".splash-overlay__close"), faCircleXmark);
   const hideSplash = () => {
     splashOverlay.classList.add("hidden");
     splashOverlay.setAttribute("aria-hidden", "true");
@@ -57,6 +86,10 @@ map.view.when(() => {
 });
 
 const catalogData = getAllCatalog();
+const SIDEBAR_WIDTH_KEY = "seattleGeoExplorer.sidebarWidth";
+const SIDEBAR_COLLAPSED_KEY = "seattleGeoExplorer.sidebarCollapsed";
+const SIDEBAR_MIN_WIDTH = 320;
+const SIDEBAR_MAX_WIDTH = 560;
 let activeLayers = [];
 let activeTables = [];
 let searchQuery = "";
@@ -64,7 +97,7 @@ let sortBy = "default";
 let activeTab = "catalog";
 let filterType = "";
 let filterCategory = "";
-let filterSource = "";
+let filterOwner = "";
 let filterTag = "";
 const catalogTableChoices = new Map();
 let tableState = {
@@ -77,45 +110,47 @@ let tableState = {
   rows: [],
 };
 
-function getUniqueItems(field, delimiter = ",") {
-  return [
-    ...new Set(
-      catalogData.flatMap((item) => {
-        const value = item[field] || "";
-        return value
-          .toString()
-          .split(delimiter)
-          .map((part) => part.trim())
-          .filter(Boolean);
-      }),
-    ),
-  ].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-}
+const ownerOptions = buildFilterOptions(
+  catalogData,
+  getOwnerFilterValue,
+  (value) => getDisplayOwner({ accessInformation: value }) || getDisplayOwner({ owner: value }),
+);
+const categoryOptions = buildFilterOptions(
+  catalogData,
+  (item) => getCategories(item),
+  cleanCategoryLabel,
+);
+const typeOptions = buildFilterOptions(
+  catalogData,
+  getTypeValue,
+  getTypeLabel,
+);
+const tags = buildFilterOptions(catalogData, (item) => getTags(item)).map(
+  (option) => option.label,
+);
 
-function formatCategoryLabel(category) {
-  return category
-    .replace(/\/Categories\//g, "")
-    .replace(/\//g, " / ")
-    .trim();
-}
+function compactFilterLabel(label, maxLength = 64) {
+  const cleanLabel = (label || "").toString().replace(/\s+/g, " ").trim();
+  if (cleanLabel.length <= maxLength) {
+    return cleanLabel;
+  }
 
-const categories = getUniqueItems("categories");
-const tags = getUniqueItems("tags");
-const sources = getUniqueItems("source");
+  return `${cleanLabel.slice(0, maxLength - 3).trim()}...`;
+}
 
 const header = document.createElement("section");
 header.className = "sidebar__header";
 header.innerHTML = `
-  <div class="sidebar__brand">
-    <div class="sidebar__brand-copy">
-      <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
-      <div class="sidebar__brand-subtitle">Discover, map, and inspect Seattle public GIS datasets from one catalog-driven workspace.</div>
-    </div>
+  <div class="sidebar__brand-copy">
+    <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
+    <div class="sidebar__brand-subtitle">Seattle public GIS data, mapped and inspected from one focused catalog.</div>
   </div>
   <div class="sidebar__toolbar">
-    <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info">ℹ</button>
-    <a href="https://github.com/benjiantolin/seattle-geodata-explorer" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub Repository" target="_blank" rel="noopener">🐙</a>    <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener">💼</a>
-    <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share">⤴</button>
+    <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info"></button>
+    <a href="https://github.com/benjiantolin/seattle-geodata-explorer" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub Repository" target="_blank" rel="noopener"></a>
+    <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener"></a>
+    <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share"></button>
+    <button type="button" class="sidebar__toolbar-button sidebar__collapse-button" id="sidebarToggleButton" title="Collapse sidebar" aria-expanded="true"></button>
   </div>
 `;
 
@@ -124,10 +159,14 @@ toolbarButtons[0]?.setAttribute("aria-label", "Project information");
 toolbarButtons[1]?.setAttribute("aria-label", "GitHub repository");
 toolbarButtons[2]?.setAttribute("aria-label", "LinkedIn profile");
 toolbarButtons[3]?.setAttribute("aria-label", "Share app");
-if (toolbarButtons[0]) toolbarButtons[0].textContent = "i";
-if (toolbarButtons[1]) toolbarButtons[1].textContent = "GH";
-if (toolbarButtons[2]) toolbarButtons[2].textContent = "in";
-if (toolbarButtons[3]) toolbarButtons[3].textContent = "S";
+toolbarButtons[4]?.setAttribute("aria-label", "Collapse sidebar");
+setIcon(toolbarButtons[0], faCircleInfo);
+setIcon(toolbarButtons[1], faGithub);
+setIcon(toolbarButtons[2], faLinkedin);
+setIcon(toolbarButtons[3], faShareFromSquare);
+setIcon(toolbarButtons[4], faRightFromBracket, {
+  classes: ["icon--flip-horizontal"],
+});
 
 const controls = document.createElement("div");
 controls.className = "sidebar__controls";
@@ -164,12 +203,14 @@ filterRow.className = "sidebar__filters";
 
 const typeFilterSelect = document.createElement("select");
 typeFilterSelect.className = "sidebar__filter";
-typeFilterSelect.innerHTML = `
-  <option value="">All types</option>
-  <option value="Feature Service">Feature Service</option>
-  <option value="Map Service">Map Service</option>
-  <option value="Image Service">Image Service</option>
-`;
+typeFilterSelect.setAttribute("aria-label", "Filter by data type");
+typeFilterSelect.innerHTML = [
+  `<option value="">All types</option>`,
+  ...typeOptions.map(
+    (option) =>
+      `<option value="${escapeHtml(option.value)}" title="${escapeHtml(option.label)}">${escapeHtml(compactFilterLabel(option.label, 42))}</option>`,
+  ),
+].join("");
 typeFilterSelect.addEventListener("change", (event) => {
   filterType = event.target.value;
   renderCatalog();
@@ -178,13 +219,12 @@ filterRow.appendChild(typeFilterSelect);
 
 const categoryFilterSelect = document.createElement("select");
 categoryFilterSelect.className = "sidebar__filter";
+categoryFilterSelect.setAttribute("aria-label", "Filter by category");
 categoryFilterSelect.innerHTML = [
-  `
-  <option value="">All categories</option>
-`,
-  ...categories.map(
-    (category) =>
-      `<option value="${category}">${formatCategoryLabel(category)}</option>`,
+  `<option value="">All categories</option>`,
+  ...categoryOptions.map(
+    (option) =>
+      `<option value="${escapeHtml(option.value)}" title="${escapeHtml(option.label)}">${escapeHtml(compactFilterLabel(option.label, 54))}</option>`,
   ),
 ].join("");
 categoryFilterSelect.addEventListener("change", (event) => {
@@ -193,19 +233,23 @@ categoryFilterSelect.addEventListener("change", (event) => {
 });
 filterRow.appendChild(categoryFilterSelect);
 
-const sourceFilterSelect = document.createElement("select");
-sourceFilterSelect.className = "sidebar__filter";
-sourceFilterSelect.innerHTML = [
-  `
-  <option value="">All sources</option>
-`,
-  ...sources.map((source) => `<option value="${source}">${source}</option>`),
+const ownerFilterSelect = document.createElement("select");
+ownerFilterSelect.className = "sidebar__filter";
+ownerFilterSelect.setAttribute("aria-label", "Filter by data owner");
+ownerFilterSelect.innerHTML = [
+  `<option value="">All data owners</option>`,
+  ...ownerOptions.map(
+    (option) =>
+      `<option value="${escapeHtml(option.value)}" title="${escapeHtml(option.label)}">${escapeHtml(compactFilterLabel(option.label, 52))}</option>`,
+  ),
 ].join("");
-sourceFilterSelect.addEventListener("change", (event) => {
-  filterSource = event.target.value;
+ownerFilterSelect.addEventListener("change", (event) => {
+  filterOwner = event.target.value;
   renderCatalog();
 });
-filterRow.appendChild(sourceFilterSelect);
+filterRow.appendChild(ownerFilterSelect);
+filterRow.insertBefore(ownerFilterSelect, typeFilterSelect);
+filterRow.insertBefore(categoryFilterSelect, typeFilterSelect);
 
 const tagFilterWrapper = document.createElement("div");
 tagFilterWrapper.className = "sidebar__tag-wrapper";
@@ -213,7 +257,8 @@ tagFilterWrapper.className = "sidebar__tag-wrapper";
 const tagFilterInput = document.createElement("input");
 tagFilterInput.className = "sidebar__tag-search";
 tagFilterInput.setAttribute("list", "tagOptions");
-tagFilterInput.placeholder = "Search tags…";
+tagFilterInput.setAttribute("aria-label", "Filter by tag");
+tagFilterInput.placeholder = "Search tags...";
 tagFilterInput.addEventListener("input", (event) => {
   filterTag = event.target.value;
   renderCatalog();
@@ -233,6 +278,16 @@ filterRow.appendChild(tagFilterWrapper);
 
 controls.appendChild(filterRow);
 
+const filterActions = document.createElement("div");
+filterActions.className = "sidebar__filter-actions";
+const clearFiltersButton = document.createElement("button");
+clearFiltersButton.type = "button";
+clearFiltersButton.className = "sidebar__clear-filters";
+clearFiltersButton.textContent = "Clear Filters";
+clearFiltersButton.disabled = true;
+clearFiltersButton.addEventListener("click", clearFilters);
+filterActions.appendChild(clearFiltersButton);
+
 const tabBar = document.createElement("div");
 tabBar.className = "sidebar__tabs";
 const catalogTab = document.createElement("button");
@@ -246,15 +301,27 @@ activeTabButton.addEventListener("click", () => switchTab("active"));
 tabBar.appendChild(catalogTab);
 tabBar.appendChild(activeTabButton);
 
+const catalogPanel = document.createElement("section");
+catalogPanel.className = "sidebar__panel sidebar__panel--catalog";
+catalogPanel.id = "catalogPanel";
+
+const activePanel = document.createElement("section");
+activePanel.className = "sidebar__panel sidebar__panel--active hidden";
+activePanel.id = "activePanel";
+
 const layerSummary = document.createElement("div");
 layerSummary.className = "sidebar__summary";
+const layerSummaryText = document.createElement("span");
+layerSummaryText.className = "sidebar__summary-text";
+layerSummary.appendChild(layerSummaryText);
+layerSummary.appendChild(clearFiltersButton);
 
 const catalogHeader = document.createElement("div");
 catalogHeader.className = "sidebar__section-heading";
 catalogHeader.textContent = "Layer Catalog";
 
 const activeHeader = document.createElement("div");
-activeHeader.className = "sidebar__section-heading hidden active-header";
+activeHeader.className = "sidebar__section-heading active-header";
 activeHeader.innerHTML = `
   <span>Active Layers</span>
   <button type="button" class="sidebar__clear">Clear all</button>
@@ -269,15 +336,26 @@ catalogContainer.className = "sidebar__list";
 
 const activeContainer = document.createElement("div");
 activeContainer.id = "activeContainer";
-activeContainer.className = "sidebar__layer-list hidden";
+activeContainer.className = "sidebar__layer-list";
 const activeTablesContainer = document.createElement("div");
 activeTablesContainer.id = "activeTablesContainer";
-activeTablesContainer.className = "sidebar__layer-list hidden";
+activeTablesContainer.className = "sidebar__layer-list";
+
+const activeEmptyState = document.createElement("div");
+activeEmptyState.className = "sidebar__empty-state";
+activeEmptyState.innerHTML = `
+  <strong>No active layers yet</strong>
+  <span>Add a dataset from the Catalog tab to manage visibility, opacity, tables, and source links here.</span>
+  <button type="button" class="sidebar__empty-action">Browse Catalog</button>
+`;
+activeEmptyState
+  .querySelector(".sidebar__empty-action")
+  .addEventListener("click", () => switchTab("catalog"));
 
 
 const activeTablesHeader = document.createElement("div");
 activeTablesHeader.className =
-  "sidebar__section-heading hidden active-tables-header";
+  "sidebar__section-heading active-tables-header";
 activeTablesHeader.textContent = "Active Tables";
 
 const tablePanel = document.createElement("div");
@@ -289,12 +367,8 @@ tablePanel.innerHTML = `
       <div class="sidebar__table-subtitle">Browse attributes in a native ArcGIS table view.</div>
     </div>
     <div class="sidebar__table-actions">
-      <button type="button" class="sidebar__table-icon-button sidebar__table-fullscreen" title="Fullscreen table" aria-label="Open fullscreen table" aria-pressed="false">
-        <span class="table-icon table-icon--expand" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
-      </button>
-      <button type="button" class="sidebar__table-icon-button sidebar__table-toggle" title="Hide table" aria-label="Hide table">
-        <span class="table-icon table-icon--minimize" aria-hidden="true"></span>
-      </button>
+      <button type="button" class="sidebar__table-icon-button sidebar__table-restore" title="Restore table size and position" aria-label="Restore table size and position"></button>
+      <button type="button" class="sidebar__table-icon-button sidebar__table-toggle" title="Hide table" aria-label="Hide table"></button>
     </div>
   </div>
   <div class="sidebar__table-info">
@@ -308,15 +382,14 @@ tablePanel.innerHTML = `
 tablePanel
   .querySelector(".sidebar__table-toggle")
   .addEventListener("click", () => {
-    tableState.visible = !tableState.visible;
+    tableState.visible = false;
     renderTablePanel();
   });
 
 tablePanel
-  .querySelector(".sidebar__table-fullscreen")
+  .querySelector(".sidebar__table-restore")
   .addEventListener("click", () => {
-    tableState.mode =
-      tableState.mode === "fullscreen" ? "normal" : "fullscreen";
+    tableState.mode = "normal";
     resetTablePanelPosition();
     renderTablePanel();
   });
@@ -333,32 +406,49 @@ document.addEventListener("keydown", (event) => {
 });
 
 sidebar.appendChild(header);
-sidebar.appendChild(controls);
 sidebar.appendChild(tabBar);
-sidebar.appendChild(layerSummary);
-sidebar.appendChild(catalogHeader);
-sidebar.appendChild(activeHeader);
-sidebar.appendChild(catalogContainer);
-sidebar.appendChild(activeContainer);
-sidebar.appendChild(activeTablesHeader);
-sidebar.appendChild(activeTablesContainer);
+
+catalogPanel.appendChild(controls);
+catalogPanel.appendChild(layerSummary);
+catalogPanel.appendChild(catalogHeader);
+catalogPanel.appendChild(catalogContainer);
+
+activePanel.appendChild(activeHeader);
+activePanel.appendChild(activeEmptyState);
+activePanel.appendChild(activeContainer);
+activePanel.appendChild(activeTablesHeader);
+activePanel.appendChild(activeTablesContainer);
+
+sidebar.appendChild(catalogPanel);
+sidebar.appendChild(activePanel);
 
 const sidebarFooter = document.createElement("div");
 sidebarFooter.className = "sidebar__footer";
 sidebarFooter.innerHTML = `Built with <span class="footer-coffee">☕</span> by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a>`;
 sidebar.appendChild(sidebarFooter);
 
-app.appendChild(tablePanel);
+const sidebarResizeHandle = document.createElement("div");
+sidebarResizeHandle.className = "sidebar__resize-handle";
+sidebarResizeHandle.setAttribute("role", "separator");
+sidebarResizeHandle.setAttribute("aria-orientation", "vertical");
+sidebarResizeHandle.setAttribute("aria-label", "Resize sidebar");
+sidebar.appendChild(sidebarResizeHandle);
 
-const tableToggleButton = document.createElement("button");
-tableToggleButton.className = "table-toggle-floating hidden";
-tableToggleButton.innerHTML = "📊";
-tableToggleButton.title = "Open table";
-tableToggleButton.addEventListener("click", () => {
-  tableState.visible = true;
-  renderTablePanel();
-});
-app.appendChild(tableToggleButton);
+const sidebarReopenButton = document.createElement("button");
+sidebarReopenButton.type = "button";
+sidebarReopenButton.className = "sidebar-reopen-button hidden";
+setIcon(sidebarReopenButton, faRightToBracket);
+sidebarReopenButton.setAttribute("aria-label", "Open catalog sidebar");
+sidebarReopenButton.title = "Open catalog sidebar";
+sidebarReopenButton.addEventListener("click", () => setSidebarCollapsed(false));
+sidebar.appendChild(sidebarReopenButton);
+
+const sidebarRailTitle = document.createElement("div");
+sidebarRailTitle.className = "sidebar__rail-title";
+sidebarRailTitle.textContent = "Seattle GeoData";
+sidebar.appendChild(sidebarRailTitle);
+
+app.appendChild(tablePanel);
 
 const basemapContainer = document.createElement("div");
 basemapContainer.className = "map-tools-widget";
@@ -403,7 +493,7 @@ map.view.ui.add(new Home({ view: map.view }), "top-right");
 map.view.ui.add(basemapExpand, "top-right");
 map.view.ui.add(measurementExpand, "top-right");
 map.view.ui.add(legendExpand, "top-right");
-map.view.ui.add(scaleBar, "top-right");
+map.view.ui.add(scaleBar, "bottom-right");
 map.view.ui.add(new Compass({ view: map.view }), "top-right");
 
 let featureTable = new FeatureTable({
@@ -426,6 +516,23 @@ const activeTablesList = new CustomLayerList(
   activeTablesContainer,
   renderActiveTableItem,
 );
+
+initializeSidebarState();
+header
+  .querySelector("#sidebarToggleButton")
+  ?.addEventListener("click", () => setSidebarCollapsed(!isSidebarCollapsed()));
+sidebarResizeHandle.addEventListener("pointerdown", startSidebarResize);
+window.addEventListener("resize", () => {
+  if (window.innerWidth <= 820 && localStorage.getItem(SIDEBAR_COLLAPSED_KEY) == null) {
+    setSidebarCollapsed(true, { persist: false });
+  }
+  map.resize();
+});
+app.addEventListener("transitionend", (event) => {
+  if (event.propertyName === "grid-template-columns") {
+    map.resize();
+  }
+});
 
 renderUI();
 
@@ -499,15 +606,16 @@ shareButton.addEventListener("click", async () => {
 
 map.view.on("click", async (event) => {
   const hit = await map.view.hitTest(event);
-  if (!hit.results.length) {
+  const result = hit.results.find((candidate) =>
+    getActiveHitGraphic(candidate?.graphic),
+  );
+  const graphic = getActiveHitGraphic(result?.graphic);
+  if (!graphic) {
     return;
   }
 
-  const result = hit.results[0];
-  const graphic = result.graphic;
-  const layer = graphic?.layer;
-  const attrs = graphic?.attributes || {};
-  const active = activeLayers.find((entry) => entry.layer.id === layer?.id);
+  const attrs = graphic.attributes || {};
+  const active = findActiveLayerForGraphic(graphic);
   const actions = [];
 
   if (graphic?.geometry) {
@@ -548,6 +656,43 @@ map.view.on("click", async (event) => {
   showInspector(attrs, "Feature Details", null, actions);
 });
 
+function hasUsefulAttributes(graphic) {
+  const attrs = graphic?.attributes;
+  if (!attrs || typeof attrs !== "object") {
+    return false;
+  }
+
+  return Object.values(attrs).some((value) => value != null && value !== "");
+}
+
+function findActiveLayerForGraphic(graphic) {
+  const layer = graphic?.layer;
+  if (!layer) {
+    return null;
+  }
+
+  return (
+    activeLayers.find((entry) => {
+      const activeLayer = entry.layer;
+      return (
+        activeLayer === layer ||
+        activeLayer?.id === layer.id ||
+        activeLayer?.id === layer.parent?.id ||
+        activeLayer?.url === layer.url ||
+        activeLayer?.url === layer.parent?.url
+      );
+    }) || null
+  );
+}
+
+function getActiveHitGraphic(graphic) {
+  if (!graphic?.geometry || !hasUsefulAttributes(graphic)) {
+    return null;
+  }
+
+  return findActiveLayerForGraphic(graphic) ? graphic : null;
+}
+
 function renderUI() {
   updateSummary();
   renderCatalog();
@@ -557,32 +702,130 @@ function renderUI() {
   updateTabVisibility();
 }
 
+function initializeSidebarState() {
+  const storedWidth = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+  if (Number.isFinite(storedWidth)) {
+    setSidebarWidth(storedWidth, { persist: false });
+  }
+
+  const storedCollapsed = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+  const defaultCollapsed = window.innerWidth <= 820;
+  setSidebarCollapsed(
+    storedCollapsed == null ? defaultCollapsed : storedCollapsed === "true",
+    { persist: false },
+  );
+}
+
+function clampSidebarWidth(width) {
+  return Math.min(Math.max(width, SIDEBAR_MIN_WIDTH), SIDEBAR_MAX_WIDTH);
+}
+
+function setSidebarWidth(width, { persist = true } = {}) {
+  const nextWidth = clampSidebarWidth(width);
+  document.documentElement.style.setProperty("--sidebar-width", `${nextWidth}px`);
+  sidebar.setAttribute("aria-valuenow", String(Math.round(nextWidth)));
+  if (persist) {
+    localStorage.setItem(SIDEBAR_WIDTH_KEY, String(Math.round(nextWidth)));
+  }
+  map.resize();
+}
+
+function isSidebarCollapsed() {
+  return sidebar.classList.contains("sidebar--collapsed");
+}
+
+function setSidebarCollapsed(collapsed, { persist = true } = {}) {
+  app.classList.toggle("sidebar-collapsed", collapsed);
+  sidebar.classList.toggle("sidebar--collapsed", collapsed);
+  sidebar.setAttribute("aria-hidden", "false");
+  sidebarReopenButton.classList.toggle("hidden", !collapsed);
+
+  const toggleButton = header.querySelector("#sidebarToggleButton");
+  if (toggleButton) {
+    toggleButton.setAttribute("aria-expanded", String(!collapsed));
+    toggleButton.setAttribute(
+      "aria-label",
+      collapsed ? "Expand sidebar" : "Collapse sidebar",
+    );
+    toggleButton.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    setIcon(toggleButton, collapsed ? faRightToBracket : faRightFromBracket, {
+      classes: collapsed ? [] : ["icon--flip-horizontal"],
+    });
+  }
+
+  if (persist) {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+  }
+
+  map.resize();
+}
+
+function startSidebarResize(event) {
+  if (event.button !== 0 || window.innerWidth <= 820 || isSidebarCollapsed()) {
+    return;
+  }
+
+  event.preventDefault();
+  sidebar.classList.add("sidebar--resizing");
+  sidebarResizeHandle.setPointerCapture(event.pointerId);
+
+  const handleMove = (moveEvent) => {
+    setSidebarWidth(moveEvent.clientX);
+  };
+
+  const handleUp = () => {
+    sidebar.classList.remove("sidebar--resizing");
+    sidebarResizeHandle.releasePointerCapture(event.pointerId);
+    window.removeEventListener("pointermove", handleMove);
+    window.removeEventListener("pointerup", handleUp);
+    map.resize();
+  };
+
+  window.addEventListener("pointermove", handleMove);
+  window.addEventListener("pointerup", handleUp);
+}
+
 function updateSummary() {
-  layerSummary.textContent = `${currentCatalog().length} datasets · ${activeLayers.length} active`;
+  const shown = currentCatalog().length;
+  const activeFilterCount = getActiveFilterCount();
+  const filterText =
+    activeFilterCount === 1
+      ? "1 filter"
+      : activeFilterCount > 1
+        ? `${activeFilterCount} filters`
+        : "no filters";
+
+  layerSummaryText.textContent = `${shown} of ${catalogData.length} datasets shown | ${activeLayers.length} active | ${filterText}`;
+  clearFiltersButton.disabled = activeFilterCount === 0;
 }
 
 function currentCatalog() {
   let results = searchQuery ? searchCatalog(searchQuery) : catalogData;
   if (filterType) {
-    results = results.filter((item) => item.type === filterType);
+    results = results.filter((item) => getTypeValue(item) === filterType);
   }
   if (filterCategory) {
+    const selectedCategoryLabel = cleanCategoryLabel(filterCategory);
     results = results.filter((item) => {
-      const categories = (item.categories || "")
-        .split(",")
-        .map((value) => value.trim());
-      return categories.includes(filterCategory);
+      return getCategories(item).some(
+        (category) =>
+          category === filterCategory ||
+          cleanCategoryLabel(category) === selectedCategoryLabel,
+      );
     });
   }
-  if (filterSource) {
-    results = results.filter((item) => item.source === filterSource);
+  if (filterOwner) {
+    const selectedOwnerLabel = cleanOwnerLabel(filterOwner);
+    results = results.filter(
+      (item) =>
+        getOwnerFilterValue(item) === filterOwner ||
+        getDisplayOwner(item) === selectedOwnerLabel,
+    );
   }
   if (filterTag) {
     const tagValue = filterTag.toLowerCase().trim();
     results = results.filter((item) => {
-      const tags = (item.tags || "")
-        .split(",")
-        .map((value) => value.trim().toLowerCase());
+      const tags = getTags(item).map((value) => value.toLowerCase());
       return tags.some((tag) => tag.includes(tagValue));
     });
   }
@@ -603,10 +846,43 @@ function currentCatalog() {
       const bDate = new Date(b[sortBy] || 0);
       return bDate - aDate; // Newest first
     }
-    const aValue = (a[sortBy] || "").toString().toLowerCase();
-    const bValue = (b[sortBy] || "").toString().toLowerCase();
+    const aValue = getSortValue(a, sortBy);
+    const bValue = getSortValue(b, sortBy);
     return aValue.localeCompare(bValue);
   });
+}
+
+function getSortValue(item, field) {
+  if (field === "owner") {
+    return getDisplayOwner(item).toLowerCase();
+  }
+  if (field === "type") {
+    return getTypeValue(item).toLowerCase();
+  }
+  return (item[field] || "").toString().toLowerCase();
+}
+
+function getActiveFilterCount() {
+  return [searchQuery, filterType, filterCategory, filterOwner, filterTag].filter(
+    (value) => value && value.toString().trim(),
+  ).length;
+}
+
+function clearFilters() {
+  searchQuery = "";
+  filterType = "";
+  filterCategory = "";
+  filterOwner = "";
+  filterTag = "";
+  typeFilterSelect.value = "";
+  categoryFilterSelect.value = "";
+  ownerFilterSelect.value = "";
+  tagFilterInput.value = "";
+  const searchInput = searchWrapper.querySelector(".search-bar__input");
+  if (searchInput) {
+    searchInput.value = "";
+  }
+  renderCatalog();
 }
 
 function renderCatalog() {
@@ -636,16 +912,25 @@ function switchTab(tabName) {
 
 function updateTabVisibility() {
   const catalogVisible = activeTab === "catalog";
-  catalogContainer.classList.toggle("hidden", !catalogVisible);
-  catalogHeader.classList.toggle("hidden", !catalogVisible);
-  activeContainer.classList.toggle("hidden", catalogVisible);
-  activeTablesContainer.classList.toggle("hidden", catalogVisible);
-  activeHeader.classList.toggle("hidden", catalogVisible);
-  activeTablesHeader.classList.toggle("hidden", catalogVisible);
+  catalogPanel.classList.toggle("hidden", !catalogVisible);
+  activePanel.classList.toggle("hidden", catalogVisible);
+  activeEmptyState.classList.toggle(
+    "hidden",
+    activeLayers.length > 0 || activeTables.length > 0,
+  );
+  activeContainer.classList.toggle("hidden", activeLayers.length === 0);
+  activeTablesHeader.classList.toggle("hidden", activeTables.length === 0);
+  activeTablesContainer.classList.toggle("hidden", activeTables.length === 0);
 }
 
 async function handleAddLayer(meta) {
   if (isLayerActive(meta)) {
+    return;
+  }
+
+  const unsupportedReason = getUnsupportedReason(meta);
+  if (unsupportedReason) {
+    showUnsupportedItem(meta, unsupportedReason);
     return;
   }
 
@@ -669,7 +954,7 @@ async function handleAddLayer(meta) {
 
     switchTab("active");
     renderUI();
-    map.zoomToLayer(layer);
+    map.zoomToMetadataOrLayer(meta, layer);
   } catch (error) {
     showInspector(
       {
@@ -680,6 +965,31 @@ async function handleAddLayer(meta) {
       "Layer Load Error",
     );
   }
+}
+
+function showUnsupportedItem(meta, reason = getUnsupportedReason(meta)) {
+  const sourceUrl = safeUrl(meta.url);
+  const actions = [];
+
+  if (sourceUrl) {
+    actions.push({
+      label: "Open source",
+      onClick: () => window.open(sourceUrl, "_blank", "noreferrer"),
+    });
+  }
+
+  showInspector(
+    {
+      Dataset: meta.title || "Untitled dataset",
+      Type: getTypeLabel(meta.type),
+      Owner: getDisplayOwner(meta) || meta.owner || "Seattle GIS",
+      Status: "Not directly loadable",
+      Reason: reason,
+    },
+    "Dataset Details",
+    null,
+    actions,
+  );
 }
 
 function handleTableOnlyService(meta, tables) {
@@ -706,6 +1016,11 @@ function handleTableOnlyService(meta, tables) {
     const toggle = card?.querySelector(".layer-card__menu-toggle");
     menu?.classList.remove("hidden");
     toggle?.setAttribute("aria-expanded", "true");
+    toggle?.setAttribute("aria-label", "Hide dataset details");
+    if (toggle) {
+      toggle.title = "Hide dataset details";
+      setIcon(toggle, faAngleUp);
+    }
     card?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
@@ -836,19 +1151,29 @@ function renderCatalogItem(meta) {
   const active = isLayerActive(meta);
   const datasetKey = getDatasetKey(meta);
   const tableChoices = catalogTableChoices.get(datasetKey) || [];
+  const loadable = isWebLoadableCatalogItem(meta);
+  const unsupportedReason = loadable ? "" : getUnsupportedReason(meta);
   return createLayerCard(
     meta,
     {
       primary: active ? handleRemoveLayer : handleAddLayer,
     },
     {
-      primaryText: tableChoices.length ? "Tables" : active ? "Remove" : "Add",
+      primaryText: tableChoices.length
+        ? "Tables"
+        : active
+          ? "Remove"
+          : loadable
+            ? "Add"
+            : "Details",
       active,
       variant: "portal",
       datasetKey,
       tableChoices,
       primaryOpensMenu: tableChoices.length > 0,
       onTableOpen: openTableService,
+      disabled: !loadable && !active,
+      disabledReason: unsupportedReason,
     },
   );
 }
@@ -859,18 +1184,15 @@ function renderActiveItem(item) {
   card.id = `active-layer-${item.layer.id}`;
 
   const title = escapeHtml(item.meta.title || "Untitled layer");
-  const subtitle = `${item.meta.type || "Feature Service"}${item.meta.source ? ` / ${item.meta.source}` : item.meta.owner ? ` / ${item.meta.owner}` : ""}`;
-  const tags = (item.meta.tags || "")
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
+  const subtitle = `${getTypeLabel(item.meta.type)}${getDisplayOwner(item.meta) ? ` / ${getDisplayOwner(item.meta)}` : item.meta.source ? ` / ${item.meta.source}` : ""}`;
+  const tags = getTags(item.meta);
   const description = escapeHtml(
     item.meta.description || item.meta.snippet || "No description available.",
   );
   const opacity =
     typeof item.layer.opacity === "number" ? item.layer.opacity : 1;
-  const owner = escapeHtml(item.meta.owner || item.meta.source || "Seattle GIS");
-  const type = escapeHtml(item.meta.type || "Layer");
+  const owner = escapeHtml(getDisplayOwner(item.meta) || item.meta.source || "Seattle GIS");
+  const type = escapeHtml(getTypeLabel(item.meta.type));
 
   card.innerHTML = `
     <div class="active-layer-card__header">
@@ -879,8 +1201,8 @@ function renderActiveItem(item) {
         <div class="active-layer-card__subtitle">${escapeHtml(subtitle)}</div>
       </div>
       <div class="active-layer-card__controls">
-        <button type="button" class="icon-button visibility-toggle" title="${item.visible ? "Hide layer" : "Show layer"}" aria-label="${item.visible ? "Hide layer" : "Show layer"}">${item.visible ? "On" : "Off"}</button>
-        <button type="button" class="icon-button menu-toggle" title="Actions" aria-label="Layer actions" aria-expanded="false">...</button>
+        <button type="button" class="icon-button visibility-toggle" title="${item.visible ? "Hide layer" : "Show layer"}" aria-label="${item.visible ? "Hide layer" : "Show layer"}">${renderIcon(item.visible ? faEye : faEyeSlash)}</button>
+        <button type="button" class="icon-button menu-toggle" title="Actions" aria-label="Layer actions" aria-expanded="false">${renderIcon(faEllipsis)}</button>
       </div>
     </div>
     <div class="active-layer-card__menu hidden">
@@ -930,7 +1252,7 @@ function renderActiveItem(item) {
 
   zoomButton.addEventListener("click", (event) => {
     event.stopPropagation();
-    map.zoomToLayer(item.layer);
+    map.zoomToMetadataOrLayer(item.meta, item.layer);
   });
 
   tableButton.addEventListener("click", (event) => {
@@ -988,7 +1310,7 @@ function renderActiveTableItem(tableMeta) {
         <div class="active-table-card__subtitle">${escapeHtml(subtitle)}</div>
       </div>
       <div class="active-table-card__controls">
-        <button type="button" class="icon-button table-menu-toggle" title="Table actions" aria-label="Table actions" aria-expanded="false">...</button>
+        <button type="button" class="icon-button table-menu-toggle" title="Table actions" aria-label="Table actions" aria-expanded="false">${renderIcon(faEllipsis)}</button>
       </div>
     </div>
     <div class="active-table-card__menu hidden">
@@ -1052,49 +1374,21 @@ function prepareTable(item) {
 
 function renderTablePanel() {
   const toggle = tablePanel.querySelector(".sidebar__table-toggle");
-  const fullscreenButton = tablePanel.querySelector(
-    ".sidebar__table-fullscreen",
-  );
-  const fullscreenIcon = fullscreenButton.querySelector(".table-icon");
+  const restoreButton = tablePanel.querySelector(".sidebar__table-restore");
   const tableInfo = tablePanel.querySelector(".sidebar__table-layer");
   const tableMessage = tablePanel.querySelector(".sidebar__table-message");
 
+  setIcon(toggle, faWindowMinimize);
+  setIcon(restoreButton, faMinimize);
   tablePanel.classList.toggle("hidden", !tableState.visible);
   tablePanel.classList.toggle(
     "sidebar__table-panel--fullscreen",
     tableState.mode === "fullscreen",
   );
-  toggle.textContent = tableState.visible ? "Hide" : "Show table";
-  toggle.setAttribute(
-    "aria-label",
-    tableState.visible ? "Hide table" : "Show table",
-  );
-  fullscreenButton.setAttribute(
-    "aria-pressed",
-    String(tableState.mode === "fullscreen"),
-  );
-  fullscreenButton.setAttribute(
-    "aria-label",
-    tableState.mode === "fullscreen"
-      ? "Exit fullscreen table"
-      : "Open fullscreen table",
-  );
-  fullscreenButton.title =
-    tableState.mode === "fullscreen" ? "Exit fullscreen" : "Fullscreen table";
-  fullscreenIcon.classList.toggle(
-    "table-icon--expand",
-    tableState.mode !== "fullscreen",
-  );
-  fullscreenIcon.classList.toggle(
-    "table-icon--restore",
-    tableState.mode === "fullscreen",
-  );
-
-  // Show floating button if table is hidden but there are active tables
-  tableToggleButton.classList.toggle(
-    "hidden",
-    tableState.visible || activeTables.length === 0,
-  );
+  toggle.setAttribute("aria-label", "Hide table");
+  toggle.title = "Hide table";
+  restoreButton.setAttribute("aria-label", "Restore table size and position");
+  restoreButton.title = "Restore table size and position";
 
   if (!tableState.visible) {
     return;

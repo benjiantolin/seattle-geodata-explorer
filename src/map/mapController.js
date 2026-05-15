@@ -1,5 +1,6 @@
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
+import { getDefaultSeattleView, parseCatalogExtent } from "../utils/extent.js";
 
 export class MapController {
   constructor(containerId) {
@@ -32,6 +33,33 @@ export class MapController {
           duration: 1000,
           easing: "ease-in-out"
         });
+      }
+    });
+  }
+
+  zoomToMetadataOrLayer(meta, layer) {
+    const metadataExtent = parseCatalogExtent(meta?.extent);
+    if (metadataExtent) {
+      return this.view.goTo(metadataExtent.expand(1.08), {
+        duration: 1000,
+        easing: "ease-in-out"
+      });
+    }
+
+    if (layer) {
+      return this.zoomToLayer(layer);
+    }
+
+    return this.view.goTo(getDefaultSeattleView(), {
+      duration: 1000,
+      easing: "ease-in-out"
+    });
+  }
+
+  resize() {
+    requestAnimationFrame(() => {
+      if (typeof this.view.resize === "function") {
+        this.view.resize();
       }
     });
   }

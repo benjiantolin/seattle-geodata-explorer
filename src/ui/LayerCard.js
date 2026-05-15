@@ -1,4 +1,16 @@
-import { escapeHtml } from "../utils/escapeHtml.js";
+import { escapeHtml, safeUrl } from "../utils/escapeHtml.js";
+import { faAngleDown, faAngleUp } from "@fortawesome/free-solid-svg-icons";
+import {
+  cleanCategoryLabel,
+  formatCatalogDate,
+  getCategories,
+  getDisplayOwner,
+  getTags,
+  getTypeLabel,
+  getUnsupportedReason,
+} from "../utils/catalogMetadata.js";
+import { hasUsableCatalogExtent } from "../utils/extent.js";
+import { renderIcon } from "../utils/icons.js";
 
 export function createLayerCard(meta, actions = {}, options = {}) {
   const variant = options.variant || "default";
@@ -10,40 +22,36 @@ export function createLayerCard(meta, actions = {}, options = {}) {
   if (options.active) {
     div.classList.add("layer-card--active");
   }
+  if (options.disabled) {
+    div.classList.add("layer-card--disabled");
+  }
 
   const title = escapeHtml(meta.title || "Untitled dataset");
-  const subtitle = escapeHtml(meta.owner || meta.source || "Seattle GIS");
+  const ownerLabel = getDisplayOwner(meta) || meta.source || "Seattle GIS";
+  const subtitle = escapeHtml(ownerLabel);
   const description = escapeHtml(
     meta.snippet || meta.description || "No summary available.",
   );
-  const created = meta.created
-    ? new Date(meta.created).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
+  const created = formatCatalogDate(meta.created);
+  const modified = formatCatalogDate(meta.modified);
+  const categoryList = getCategories(meta);
+  const displayCategories = categoryList.map(cleanCategoryLabel).filter(Boolean);
+  const tagList = getTags(meta).slice(0, 5);
+  const accessInfo = meta.access || meta.accessInformation || "";
+  const licenseInfo = meta.licenseInfo || meta.license || "";
+  const sourceUrl = safeUrl(meta.url);
+  const extentStatus = meta.extent
+    ? hasUsableCatalogExtent(meta.extent)
+      ? "Usable catalog extent"
+      : "Extent listed, not used for zoom"
     : "";
-  const categoryList = (meta.categories || "")
-    .split(",")
-    .map((part) => part.trim())
-    .filter(Boolean);
-  const displayCategories = escapeHtml(
-    categoryList
-      .slice(0, 2)
-      .map((category) =>
-        category.replace(/\/Categories\//g, "").replace(/\//g, " / "),
-      )
-      .join(" / "),
-  );
-  const tagList = (meta.tags || "")
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean)
-    .slice(0, 5);
+  const unsupportedReason = options.disabled
+    ? options.disabledReason || getUnsupportedReason(meta)
+    : "";
 
   const badge =
     options.variant === "portal"
-      ? `<span class="layer-card__badge">${escapeHtml(meta.type || "Service")}</span>`
+      ? `<span class="layer-card__badge">${escapeHtml(getTypeLabel(meta.type))}</span>`
       : "";
   const tagChips = tagList.length
     ? `<div class="layer-card__tags">${tagList.map((tag) => `<span class="layer-card__tag">${escapeHtml(tag)}</span>`).join("")}</div>`
@@ -69,11 +77,42 @@ export function createLayerCard(meta, actions = {}, options = {}) {
     `
     : "";
   const createdLabel = created
-    ? `<div class="layer-card__created">Created ${escapeHtml(created)}</div>`
+    ? `<div><span>Created</span>${escapeHtml(created)}</div>`
     : "";
-  const categoryLine = displayCategories
-    ? `<div class="layer-card__category-row">${displayCategories}</div>`
+  const modifiedLabel = modified
+    ? `<div><span>Modified</span>${escapeHtml(modified)}</div>`
     : "";
+  const categoryLine = displayCategories.length
+    ? `<div class="layer-card__category-row">${escapeHtml(displayCategories.join(" / "))}</div>`
+    : "";
+  const licenseBlock = licenseInfo
+    ? `<div class="layer-card__meta-block">
+        <div class="layer-card__menu-label">Access / License</div>
+        <div class="layer-card__menu-text">${escapeHtml(licenseInfo)}</div>
+      </div>`
+    : "";
+  const accessBlock =
+    accessInfo && accessInfo !== licenseInfo
+      ? `<div class="layer-card__detail-grid"><div><span>Access</span>${escapeHtml(accessInfo)}</div></div>`
+      : "";
+  const extentBlock = extentStatus
+    ? `<div><span>Extent</span>${escapeHtml(extentStatus)}</div>`
+    : "";
+  const sourceAction = sourceUrl
+    ? `<a href="${escapeHtml(sourceUrl)}" class="layer-card__button layer-card__button--secondary" target="_blank" rel="noreferrer">Open Source</a>`
+    : "";
+  const unsupportedBlock = unsupportedReason
+    ? `<div class="layer-card__notice">${escapeHtml(unsupportedReason)}</div>`
+    : "";
+  const detailGrid =
+    createdLabel || modifiedLabel || accessBlock || extentBlock
+      ? `<div class="layer-card__detail-grid">
+          ${createdLabel}
+          ${modifiedLabel}
+          ${extentBlock}
+        </div>
+        ${accessBlock}`
+      : "";
 
   div.innerHTML = `
     <div class="layer-card__row">
@@ -84,16 +123,20 @@ export function createLayerCard(meta, actions = {}, options = {}) {
         </div>
         <div class="layer-card__meta">${subtitle}</div>
       </div>
+      <button type="button" class="layer-card__menu-toggle" aria-expanded="false" aria-label="Show dataset details" title="Show dataset details">${renderIcon(faAngleDown)}</button>
+    </div>
+    <div class="layer-card__summary">${description}</div>
+    <div class="layer-card__actions">
       <div class="layer-card__buttons"></div>
-      <button type="button" class="layer-card__menu-toggle" aria-expanded="false" aria-label="Show layer details">...</button>
     </div>
     <div class="layer-card__menu hidden">
-      <div class="layer-card__description">${description}</div>
+      ${unsupportedBlock}
       ${tableChooser}
       ${categoryLine}
-      ${createdLabel}
+      ${detailGrid}
       ${tagChips}
-      <div class="layer-card__secondary-actions"></div>
+      ${licenseBlock}
+      <div class="layer-card__secondary-actions">${sourceAction}</div>
     </div>
   `;
 
@@ -102,15 +145,33 @@ export function createLayerCard(meta, actions = {}, options = {}) {
   const menu = div.querySelector(".layer-card__menu");
   const menuToggle = div.querySelector(".layer-card__menu-toggle");
 
+  const setDetailsExpanded = (expanded) => {
+    menu.classList.toggle("hidden", !expanded);
+    menuToggle.setAttribute("aria-expanded", String(expanded));
+    menuToggle.setAttribute(
+      "aria-label",
+      expanded ? "Hide dataset details" : "Show dataset details",
+    );
+    menuToggle.title = expanded ? "Hide dataset details" : "Show dataset details";
+    menuToggle.innerHTML = renderIcon(expanded ? faAngleUp : faAngleDown);
+  };
+
   if (options.primaryText) {
     const primary = document.createElement("button");
     primary.className = "layer-card__button layer-card__button--primary";
     primary.textContent = options.primaryText;
+    if (options.disabled) {
+      primary.setAttribute("aria-disabled", "true");
+      primary.title = unsupportedReason || "This item is not directly loadable.";
+    }
     primary.addEventListener("click", (event) => {
       event.stopPropagation();
+      if (options.disabled) {
+        setDetailsExpanded(menu.classList.contains("hidden"));
+        return;
+      }
       if (options.primaryOpensMenu) {
-        const expanded = menu.classList.toggle("hidden") === false;
-        menuToggle.setAttribute("aria-expanded", String(expanded));
+        setDetailsExpanded(menu.classList.contains("hidden"));
         return;
       }
       actions.primary?.(meta);
@@ -142,8 +203,7 @@ export function createLayerCard(meta, actions = {}, options = {}) {
 
   menuToggle.addEventListener("click", (event) => {
     event.stopPropagation();
-    const expanded = menu.classList.toggle("hidden") === false;
-    menuToggle.setAttribute("aria-expanded", String(expanded));
+    setDetailsExpanded(menu.classList.contains("hidden"));
   });
 
   div.querySelectorAll(".layer-card__table-option").forEach((button) => {
@@ -155,6 +215,12 @@ export function createLayerCard(meta, actions = {}, options = {}) {
       if (table) {
         options.onTableOpen?.(meta, table);
       }
+    });
+  });
+
+  div.querySelectorAll(".layer-card__secondary-actions a").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.stopPropagation();
     });
   });
 
