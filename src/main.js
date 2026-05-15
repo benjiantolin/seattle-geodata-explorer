@@ -141,17 +141,19 @@ function compactFilterLabel(label, maxLength = 64) {
 const header = document.createElement("section");
 header.className = "sidebar__header";
 header.innerHTML = `
-  <div class="sidebar__brand-copy">
-    <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
-    <div class="sidebar__brand-subtitle">Seattle public GIS data, mapped and inspected from one focused catalog.</div>
+  <div class="sidebar__header-main">
+    <div class="sidebar__brand-copy">
+      <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
+    </div>
+    <div class="sidebar__toolbar" aria-label="Sidebar actions">
+      <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info"></button>
+      <a href="https://github.com/benjiantolin/seattle-geodata-explorer" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub Repository" target="_blank" rel="noopener"></a>
+      <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener"></a>
+      <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share"></button>
+      <button type="button" class="sidebar__toolbar-button sidebar__collapse-button" id="sidebarToggleButton" title="Collapse sidebar" aria-expanded="true"></button>
+    </div>
   </div>
-  <div class="sidebar__toolbar">
-    <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info"></button>
-    <a href="https://github.com/benjiantolin/seattle-geodata-explorer" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub Repository" target="_blank" rel="noopener"></a>
-    <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener"></a>
-    <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share"></button>
-    <button type="button" class="sidebar__toolbar-button sidebar__collapse-button" id="sidebarToggleButton" title="Collapse sidebar" aria-expanded="true"></button>
-  </div>
+  <div class="sidebar__brand-subtitle">Seattle public GIS data, mapped and inspected from one focused catalog.</div>
 `;
 
 const toolbarButtons = header.querySelectorAll(".sidebar__toolbar-button");
@@ -215,7 +217,6 @@ typeFilterSelect.addEventListener("change", (event) => {
   filterType = event.target.value;
   renderCatalog();
 });
-filterRow.appendChild(typeFilterSelect);
 
 const categoryFilterSelect = document.createElement("select");
 categoryFilterSelect.className = "sidebar__filter";
@@ -231,7 +232,7 @@ categoryFilterSelect.addEventListener("change", (event) => {
   filterCategory = event.target.value;
   renderCatalog();
 });
-filterRow.appendChild(categoryFilterSelect);
+
 
 const ownerFilterSelect = document.createElement("select");
 ownerFilterSelect.className = "sidebar__filter";
@@ -248,8 +249,8 @@ ownerFilterSelect.addEventListener("change", (event) => {
   renderCatalog();
 });
 filterRow.appendChild(ownerFilterSelect);
-filterRow.insertBefore(ownerFilterSelect, typeFilterSelect);
-filterRow.insertBefore(categoryFilterSelect, typeFilterSelect);
+filterRow.appendChild(categoryFilterSelect);
+filterRow.appendChild(typeFilterSelect);
 
 const tagFilterWrapper = document.createElement("div");
 tagFilterWrapper.className = "sidebar__tag-wrapper";
