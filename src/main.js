@@ -53,6 +53,8 @@ const map = new MapController("viewDiv");
 const sidebar = document.getElementById("sidebar");
 const app = document.getElementById("app");
 const splashOverlay = document.getElementById("splashOverlay");
+const APP_BASE_URL = import.meta.env.BASE_URL || "/";
+const LOGO_URL = `${APP_BASE_URL.replace(/\/?$/, "/")}logo.svg`;
 if (splashOverlay) {
   setIcon(splashOverlay.querySelector(".splash-overlay__close"), faCircleXmark);
   const hideSplash = () => {
@@ -141,8 +143,11 @@ const header = document.createElement("section");
 header.className = "sidebar__header";
 header.innerHTML = `
   <div class="sidebar__header-main">
-    <div class="sidebar__brand-copy">
-      <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
+    <div class="sidebar__brand">
+      <img class="sidebar__brand-logo" src="${LOGO_URL}" alt="Seattle GeoData Explorer logo" width="34" height="34" />
+      <div class="sidebar__brand-copy">
+        <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
+      </div>
     </div>
     <div class="sidebar__toolbar" aria-label="Sidebar actions">
       <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info"></button>
@@ -438,14 +443,14 @@ const sidebarReopenButton = document.createElement("button");
 sidebarReopenButton.type = "button";
 sidebarReopenButton.className = "sidebar-reopen-button hidden";
 setIcon(sidebarReopenButton, faRightToBracket);
-sidebarReopenButton.setAttribute("aria-label", "Open catalog sidebar");
-sidebarReopenButton.title = "Open catalog sidebar";
+sidebarReopenButton.setAttribute("aria-label", "Expand sidebar");
+sidebarReopenButton.title = "Expand sidebar";
 sidebarReopenButton.addEventListener("click", () => setSidebarCollapsed(false));
 sidebar.appendChild(sidebarReopenButton);
 
 const sidebarRailTitle = document.createElement("div");
 sidebarRailTitle.className = "sidebar__rail-title";
-sidebarRailTitle.textContent = "Seattle GeoData";
+sidebarRailTitle.textContent = "Seattle GeoData Explorer";
 sidebar.appendChild(sidebarRailTitle);
 
 app.appendChild(tablePanel);
@@ -510,10 +515,25 @@ initializeSidebarState();
 header
   .querySelector("#sidebarToggleButton")
   ?.addEventListener("click", () => setSidebarCollapsed(!isSidebarCollapsed()));
+sidebar.addEventListener("click", (event) => {
+  if (!isMobileSidebar() || !isSidebarCollapsed()) {
+    return;
+  }
+
+  if (
+    event.target.closest("button, a, input, select, textarea, [role='button']")
+  ) {
+    return;
+  }
+
+  setSidebarCollapsed(false);
+});
 sidebarResizeHandle.addEventListener("pointerdown", startSidebarResize);
 window.addEventListener("resize", () => {
   if (window.innerWidth <= 820 && localStorage.getItem(SIDEBAR_COLLAPSED_KEY) == null) {
     setSidebarCollapsed(true, { persist: false });
+  } else {
+    setSidebarCollapsed(isSidebarCollapsed(), { persist: false });
   }
   map.resize();
 });
@@ -723,23 +743,42 @@ function isSidebarCollapsed() {
   return sidebar.classList.contains("sidebar--collapsed");
 }
 
+function isMobileSidebar() {
+  return window.matchMedia("(max-width: 820px)").matches;
+}
+
 function setSidebarCollapsed(collapsed, { persist = true } = {}) {
+  const isMobile = isMobileSidebar();
   app.classList.toggle("sidebar-collapsed", collapsed);
   sidebar.classList.toggle("sidebar--collapsed", collapsed);
   sidebar.setAttribute("aria-hidden", "false");
   sidebarReopenButton.classList.toggle("hidden", !collapsed);
+  sidebarReopenButton.setAttribute(
+    "aria-label",
+    isMobile ? "Open catalog drawer" : "Expand sidebar",
+  );
+  sidebarReopenButton.title = isMobile ? "Open catalog drawer" : "Expand sidebar";
 
   const toggleButton = header.querySelector("#sidebarToggleButton");
   if (toggleButton) {
+    const label = isMobile
+      ? collapsed
+        ? "Open catalog drawer"
+        : "Dock catalog drawer"
+      : collapsed
+        ? "Expand sidebar"
+        : "Collapse sidebar";
     toggleButton.setAttribute("aria-expanded", String(!collapsed));
-    toggleButton.setAttribute(
-      "aria-label",
-      collapsed ? "Expand sidebar" : "Collapse sidebar",
-    );
-    toggleButton.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
-    setIcon(toggleButton, collapsed ? faRightToBracket : faRightFromBracket, {
-      classes: collapsed ? [] : ["icon--flip-horizontal"],
-    });
+    toggleButton.setAttribute("aria-label", label);
+    toggleButton.title = label;
+
+    if (isMobile) {
+      setIcon(toggleButton, collapsed ? faAngleUp : faWindowMinimize);
+    } else {
+      setIcon(toggleButton, collapsed ? faRightToBracket : faRightFromBracket, {
+        classes: collapsed ? [] : ["icon--flip-horizontal"],
+      });
+    }
   }
 
   if (persist) {
@@ -747,6 +786,7 @@ function setSidebarCollapsed(collapsed, { persist = true } = {}) {
   }
 
   map.resize();
+  window.setTimeout(() => map.resize(), 240);
 }
 
 function startSidebarResize(event) {

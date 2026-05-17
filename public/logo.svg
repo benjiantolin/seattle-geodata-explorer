@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">Seattle GeoData Explorer logo</title>
+  <desc id="logoDesc">A dark navy app icon with cyan water lines, Seattle skyline geometry, and a Space Needle-inspired map marker.</desc>
+  <rect width="512" height="512" rx="96" fill="#050b16"/>
+  <circle cx="256" cy="210" r="178" fill="#58c7ff" opacity="0.1"/>
+  <path d="M96 350 C150 318 204 382 256 350 C314 314 360 380 416 340" fill="none" stroke="#58c7ff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M112 386 C166 354 210 414 264 382 C320 350 360 414 408 374" fill="none" stroke="#7dd3fc" stroke-width="6" opacity="0.65" stroke-linecap="round"/>
+  <path d="M160 308 V232 H194 V308 H224 V190 H252 V308 H286 V248 H320 V308 H352 V218 H384 V308" fill="#081827" stroke="#58c7ff" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M256 308 L274 154 L292 308" fill="none" stroke="#f7fbff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="274" cy="150" r="8" fill="#58c7ff"/>
+  <line x1="238" y1="214" x2="310" y2="214" stroke="#f7fbff" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="246" y1="256" x2="302" y2="256" stroke="#58c7ff" stroke-width="5" stroke-linecap="round"/>
+</svg>
