@@ -19,7 +19,8 @@ import {
   faEllipsis,
   faEye,
   faEyeSlash,
-  faMinimize,
+  faCompress,
+  faExpand,
   faRightFromBracket,
   faRightToBracket,
   faShareFromSquare,
@@ -372,8 +373,8 @@ tablePanel.innerHTML = `
       <div class="sidebar__table-subtitle">Browse attributes in a native ArcGIS table view.</div>
     </div>
     <div class="sidebar__table-actions">
-      <button type="button" class="sidebar__table-icon-button sidebar__table-restore" title="Restore table size and position" aria-label="Restore table size and position"></button>
-      <button type="button" class="sidebar__table-icon-button sidebar__table-toggle" title="Hide table" aria-label="Hide table"></button>
+      <button type="button" class="sidebar__table-icon-button sidebar__table-restore" title="Maximize table" aria-label="Maximize table"></button>
+      <button type="button" class="sidebar__table-icon-button sidebar__table-toggle" title="Close table" aria-label="Close table"></button>
     </div>
   </div>
   <div class="sidebar__table-info">
@@ -388,14 +389,20 @@ tablePanel
   .querySelector(".sidebar__table-toggle")
   .addEventListener("click", () => {
     tableState.visible = false;
+    tableState.mode = "normal";
+    resetTablePanelPosition();
     renderTablePanel();
   });
 
 tablePanel
   .querySelector(".sidebar__table-restore")
   .addEventListener("click", () => {
-    tableState.mode = "normal";
-    resetTablePanelPosition();
+    if (tableState.mode === "fullscreen") {
+      tableState.mode = "normal";
+      resetTablePanelPosition();
+    } else {
+      tableState.mode = "fullscreen";
+    }
     renderTablePanel();
   });
 
@@ -409,6 +416,8 @@ document.addEventListener("keydown", (event) => {
 
   if (isMobileLayout()) {
     tableState.visible = false;
+    tableState.mode = "normal";
+    resetTablePanelPosition();
     renderTablePanel();
     return;
   }
@@ -417,7 +426,13 @@ document.addEventListener("keydown", (event) => {
     tableState.mode = "normal";
     resetTablePanelPosition();
     renderTablePanel();
+    return;
   }
+
+  tableState.visible = false;
+  tableState.mode = "normal";
+  resetTablePanelPosition();
+  renderTablePanel();
 });
 
 sidebar.appendChild(header);
@@ -1450,20 +1465,25 @@ function renderTablePanel() {
   const tableInfo = tablePanel.querySelector(".sidebar__table-layer");
   const tableMessage = tablePanel.querySelector(".sidebar__table-message");
   const isMobile = isMobileLayout();
+  const isFullscreen = tableState.mode === "fullscreen";
 
-  setIcon(toggle, isMobile ? faCircleXmark : faWindowMinimize);
-  setIcon(restoreButton, faMinimize);
+  setIcon(toggle, faCircleXmark);
+  setIcon(restoreButton, isFullscreen ? faCompress : faExpand);
   tablePanel.classList.toggle("hidden", !tableState.visible);
   tablePanel.classList.toggle("sidebar__table-panel--mobile", isMobile);
   tablePanel.classList.toggle(
     "sidebar__table-panel--fullscreen",
-    tableState.mode === "fullscreen",
+    isFullscreen,
   );
-  toggle.setAttribute("aria-label", isMobile ? "Close table" : "Hide table");
-  toggle.title = isMobile ? "Close table" : "Hide table";
+  toggle.setAttribute("aria-label", "Close table");
+  toggle.title = "Close table";
   restoreButton.classList.toggle("hidden", isMobile);
-  restoreButton.setAttribute("aria-label", "Restore table size and position");
-  restoreButton.title = "Restore table size and position";
+  restoreButton.setAttribute(
+    "aria-label",
+    isFullscreen ? "Restore table" : "Maximize table",
+  );
+  restoreButton.title = isFullscreen ? "Restore table" : "Maximize table";
+  restoreButton.setAttribute("aria-pressed", String(isFullscreen));
 
   if (!tableState.visible) {
     return;

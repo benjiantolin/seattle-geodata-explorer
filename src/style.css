@@ -167,17 +167,60 @@ select:focus-visible,
   display: none !important;
 }
 
-#sidebar::-webkit-scrollbar {
-  width: 8px;
+/* Shared scrollbar theming */
+#sidebar,
+#inspector,
+.splash-overlay,
+.splash-overlay__card,
+.sidebar__table-panel,
+.layer-card__menu-text,
+.active-layer-card__menu-text {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125,211,252,0.45) rgba(5,11,22,0.35);
 }
 
-#sidebar::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.04);
+#sidebar::-webkit-scrollbar,
+#inspector::-webkit-scrollbar,
+.splash-overlay::-webkit-scrollbar,
+.splash-overlay__card::-webkit-scrollbar,
+.sidebar__table-panel::-webkit-scrollbar,
+.layer-card__menu-text::-webkit-scrollbar,
+.active-layer-card__menu-text::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
 }
 
-#sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.18);
+#sidebar::-webkit-scrollbar-track,
+#inspector::-webkit-scrollbar-track,
+.splash-overlay::-webkit-scrollbar-track,
+.splash-overlay__card::-webkit-scrollbar-track,
+.sidebar__table-panel::-webkit-scrollbar-track,
+.layer-card__menu-text::-webkit-scrollbar-track,
+.active-layer-card__menu-text::-webkit-scrollbar-track {
+  background: rgba(5,11,22,0.45);
   border-radius: 999px;
+}
+
+#sidebar::-webkit-scrollbar-thumb,
+#inspector::-webkit-scrollbar-thumb,
+.splash-overlay::-webkit-scrollbar-thumb,
+.splash-overlay__card::-webkit-scrollbar-thumb,
+.sidebar__table-panel::-webkit-scrollbar-thumb,
+.layer-card__menu-text::-webkit-scrollbar-thumb,
+.active-layer-card__menu-text::-webkit-scrollbar-thumb {
+  background: rgba(125,211,252,0.34);
+  border: 2px solid rgba(5,11,22,0.72);
+  border-radius: 999px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover,
+#inspector::-webkit-scrollbar-thumb:hover,
+.splash-overlay::-webkit-scrollbar-thumb:hover,
+.splash-overlay__card::-webkit-scrollbar-thumb:hover,
+.sidebar__table-panel::-webkit-scrollbar-thumb:hover,
+.layer-card__menu-text::-webkit-scrollbar-thumb:hover,
+.active-layer-card__menu-text::-webkit-scrollbar-thumb:hover {
+  background: rgba(88,199,255,0.58);
 }
 
 .sidebar__header {
@@ -401,6 +444,7 @@ select:focus-visible,
   box-shadow: 0 0 0 4px rgba(71, 181, 255, 0.08);
 }
 
+/* Native select/dropdown theming */
 .sidebar__sort,
 .sidebar__filter,
 #basemapSelect {
@@ -409,23 +453,49 @@ select:focus-visible,
   max-width: 100%;
   padding: 10px 30px 10px 12px;
   border-radius: 10px;
-  border: 1px solid var(--panel-border);
-  background: rgba(5, 11, 22, 0.92);
+  border: 1px solid rgba(125,211,252,0.2);
+  background:
+    linear-gradient(45deg, transparent 50%, rgba(186,230,253,0.82) 50%) calc(100% - 16px) 18px / 5px 5px no-repeat,
+    linear-gradient(135deg, rgba(186,230,253,0.82) 50%, transparent 50%) calc(100% - 11px) 18px / 5px 5px no-repeat,
+    rgba(5, 11, 22, 0.92);
   color: #f6f8ff;
   outline: none;
   appearance: none;
+  color-scheme: dark;
   min-height: 42px;
   font-size: 0.89rem;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: background-color 0.18s, border-color 0.18s, box-shadow 0.18s;
+}
+
+.sidebar__sort:hover,
+.sidebar__filter:hover,
+#basemapSelect:hover {
+  border-color: rgba(125,211,252,0.36);
+  background-color: rgba(8,24,39,0.94);
+}
+
+.sidebar__sort:focus,
+.sidebar__filter:focus,
+#basemapSelect:focus {
+  border-color: rgba(88,199,255,0.68);
+  box-shadow: 0 0 0 4px rgba(88,199,255,0.1);
+}
+
+.sidebar__sort:disabled,
+.sidebar__filter:disabled,
+#basemapSelect:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
 }
 
 .sidebar__sort option,
 .sidebar__filter option,
 #basemapSelect option {
-  background: #0b111d;
+  background: #07101e;
   color: #f8fbff;
 }
 
@@ -584,7 +654,7 @@ select:focus-visible,
   background:
     radial-gradient(circle at 82% 0%, rgba(88,199,255,0.13), transparent 28%),
     var(--panel-bg-strong);
-  overflow: auto;
+  overflow: hidden;
   box-shadow: 0 28px 60px rgba(0, 0, 0, 0.35), 0 0 34px rgba(88,199,255,0.08);
   backdrop-filter: blur(20px);
   z-index: 12;
@@ -617,6 +687,7 @@ select:focus-visible,
   min-width: 0;
   resize: none;
   border-radius: 14px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.46), 0 0 42px rgba(88,199,255,0.12);
 }
 
 .sidebar__table-panel--fullscreen::after {
@@ -632,7 +703,61 @@ select:focus-visible,
   min-height: 0;
   padding: 18px 20px 20px;
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125,211,252,0.45) rgba(5,11,22,0.35);
   background: rgba(2, 8, 18, 0.3);
+}
+
+.sidebar__table-body::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.sidebar__table-body::-webkit-scrollbar-track {
+  background: rgba(5,11,22,0.45);
+}
+
+.sidebar__table-body::-webkit-scrollbar-thumb {
+  background: rgba(125,211,252,0.34);
+  border: 2px solid rgba(5,11,22,0.72);
+  border-radius: 999px;
+}
+
+.sidebar__table-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(88,199,255,0.58);
+}
+
+/* Scoped ArcGIS FeatureTable workspace support */
+.sidebar__table-body .esri-feature-table,
+.sidebar__table-body .esri-grid,
+.sidebar__table-body .esri-grid__grid,
+.sidebar__table-body .esri-grid__content {
+  min-width: 780px;
+}
+
+.sidebar__table-body .esri-feature-table {
+  width: max(780px, 100%);
+  min-height: 100%;
+}
+
+.sidebar__table-body .esri-grid__cell,
+.sidebar__table-body .esri-feature-table__cell {
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.sidebar__table-body .esri-grid__header,
+.sidebar__table-body .esri-feature-table__header {
+  font-size: 0.84rem;
+}
+
+.sidebar__table-body .esri-grid__row--selected .esri-grid__cell,
+.sidebar__table-body .esri-grid__row[aria-selected="true"] .esri-grid__cell,
+.sidebar__table-body .esri-grid__cell--selected,
+.sidebar__table-body .esri-feature-table__row--selected .esri-feature-table__cell,
+.sidebar__table-body .esri-feature-table__cell--selected {
+  color: #f7fbff;
 }
 
 .sidebar__table-resize-handle {
@@ -643,87 +768,6 @@ select:focus-visible,
   height: 28px;
   cursor: nwse-resize;
   pointer-events: none;
-}
-
-.sidebar__table-body .esri-widget,
-.sidebar__table-body .esri-feature-table,
-.sidebar__table-body .esri-grid,
-.sidebar__table-body .esri-grid__grid,
-.sidebar__table-body .esri-grid__content {
-  background: rgba(5, 11, 22, 0.96) !important;
-  color: var(--text-primary) !important;
-}
-
-.sidebar__table-body .esri-feature-table {
-  min-height: 320px;
-  height: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(125,211,252,0.18);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-}
-
-.sidebar__table-body .esri-feature-table__title,
-.sidebar__table-body .esri-feature-table__title-container,
-.sidebar__table-body .esri-feature-table__menu,
-.sidebar__table-body .esri-grid__header {
-  background: rgba(8, 16, 31, 0.98) !important;
-  color: var(--text-primary) !important;
-  border-color: rgba(125,211,252,0.14) !important;
-}
-
-.sidebar__table-body .esri-feature-table__header {
-  background: rgba(88,199,255,0.1) !important;
-  border-bottom: 1px solid rgba(125,211,252,0.2) !important;
-}
-
-.sidebar__table-body .esri-feature-table__header .esri-feature-table__cell,
-.sidebar__table-body .esri-grid__header .esri-grid__cell {
-  padding: 12px 8px;
-  font-weight: 600;
-  color: #dbeafe !important;
-  background: rgba(10, 19, 35, 0.98) !important;
-  border-right: 1px solid rgba(125,211,252,0.14) !important;
-}
-
-.sidebar__table-body .esri-feature-table__cell,
-.sidebar__table-body .esri-grid__cell {
-  padding: 8px;
-  border-bottom: 1px solid rgba(125,211,252,0.08) !important;
-  border-right: 1px solid rgba(125,211,252,0.08) !important;
-  color: rgba(247,251,255,0.92) !important;
-  background: rgba(7, 12, 22, 0.96) !important;
-  font-size: 0.85rem;
-}
-
-.sidebar__table-body .esri-feature-table__row:hover,
-.sidebar__table-body .esri-grid__row:hover .esri-grid__cell {
-  background: rgba(88,199,255,0.11) !important;
-}
-
-.sidebar__table-body .esri-feature-table__cell:last-child {
-  border-right: none;
-}
-
-.sidebar__table-body .esri-button,
-.sidebar__table-body .esri-icon-font-fallback-text,
-.sidebar__table-body calcite-action,
-.sidebar__table-body calcite-button {
-  color: var(--text-primary);
-}
-
-.sidebar__table-body ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.sidebar__table-body ::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.04);
-}
-
-.sidebar__table-body ::-webkit-scrollbar-thumb {
-  background: rgba(125,211,252,0.34);
-  border-radius: 999px;
 }
 
 .map-tools-expand-content {
@@ -740,6 +784,84 @@ select:focus-visible,
   flex-direction: column;
   gap: 10px;
   padding: 8px 0;
+}
+
+/* Scoped Esri dropdown/menu theming */
+#viewDiv .esri-search__suggestions-menu,
+#viewDiv .esri-search__suggestion,
+#viewDiv .esri-menu,
+#viewDiv .esri-menu__list-item,
+#viewDiv .esri-expand__content,
+#viewDiv .esri-basemap-gallery,
+#viewDiv .esri-legend {
+  color-scheme: dark;
+}
+
+#viewDiv .esri-search__suggestions-menu,
+#viewDiv .esri-menu,
+#viewDiv .esri-expand__content,
+#viewDiv .esri-basemap-gallery,
+#viewDiv .esri-legend {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125,211,252,0.45) rgba(5,11,22,0.35);
+}
+
+#viewDiv .esri-search__suggestions-menu,
+#viewDiv .esri-menu,
+#viewDiv .esri-expand__content .esri-widget,
+#viewDiv .esri-basemap-gallery,
+#viewDiv .esri-legend {
+  background: rgba(9, 16, 29, 0.96);
+  border-color: rgba(125,211,252,0.18);
+  color: var(--text-primary);
+}
+
+#viewDiv .esri-search__suggestion,
+#viewDiv .esri-menu__list-item,
+#viewDiv .esri-basemap-gallery__item {
+  color: rgba(247,251,255,0.9);
+}
+
+#viewDiv .esri-search__suggestion:hover,
+#viewDiv .esri-search__suggestion[aria-selected="true"],
+#viewDiv .esri-menu__list-item:hover,
+#viewDiv .esri-menu__list-item:focus,
+#viewDiv .esri-basemap-gallery__item:hover,
+#viewDiv .esri-basemap-gallery__item:focus {
+  background: rgba(88,199,255,0.14);
+  color: #f7fbff;
+}
+
+#viewDiv .esri-basemap-gallery__item--selected {
+  background: rgba(88,199,255,0.18);
+  border-color: rgba(125,211,252,0.42);
+}
+
+#viewDiv .esri-search__suggestions-menu::-webkit-scrollbar,
+#viewDiv .esri-menu::-webkit-scrollbar,
+#viewDiv .esri-expand__content::-webkit-scrollbar,
+#viewDiv .esri-basemap-gallery::-webkit-scrollbar,
+#viewDiv .esri-legend::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+#viewDiv .esri-search__suggestions-menu::-webkit-scrollbar-track,
+#viewDiv .esri-menu::-webkit-scrollbar-track,
+#viewDiv .esri-expand__content::-webkit-scrollbar-track,
+#viewDiv .esri-basemap-gallery::-webkit-scrollbar-track,
+#viewDiv .esri-legend::-webkit-scrollbar-track {
+  background: rgba(5,11,22,0.45);
+}
+
+#viewDiv .esri-search__suggestions-menu::-webkit-scrollbar-thumb,
+#viewDiv .esri-menu::-webkit-scrollbar-thumb,
+#viewDiv .esri-expand__content::-webkit-scrollbar-thumb,
+#viewDiv .esri-basemap-gallery::-webkit-scrollbar-thumb,
+#viewDiv .esri-legend::-webkit-scrollbar-thumb {
+  background: rgba(125,211,252,0.34);
+  border: 2px solid rgba(5,11,22,0.72);
+  border-radius: 999px;
 }
 
 .sidebar__table-header {
@@ -812,6 +934,12 @@ select:focus-visible,
 .sidebar__table-icon-button:hover {
   transform: translateY(-1px);
   border-color: rgba(125,211,252,0.42);
+}
+
+.sidebar__table-toggle:hover,
+.sidebar__table-toggle:focus-visible {
+  background: rgba(248,113,113,0.18);
+  border-color: rgba(248,113,113,0.42);
 }
 
 .sidebar__table-icon-button svg {
@@ -1095,12 +1223,14 @@ select:focus-visible,
   background: rgba(88,199,255,0.16);
 }
 
+/* App menu surface theming */
 .layer-card__menu {
   margin-top: 4px;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid rgba(125,211,252,0.12);
-  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(125,211,252,0.18);
+  background: rgba(7, 13, 25, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -1188,18 +1318,21 @@ select:focus-visible,
   min-width: 0;
   min-height: 34px;
   padding: 7px 9px;
-  border: 1px solid rgba(125,211,252,0.14);
+  border: 1px solid rgba(125,211,252,0.18);
   border-radius: 8px;
-  background: rgba(88,199,255,0.08);
+  background: rgba(8,24,39,0.72);
   color: #f7fbff;
   cursor: pointer;
   text-align: left;
   max-width: 100%;
+  transition: background 0.18s, border-color 0.18s, box-shadow 0.18s;
 }
 
-.layer-card__table-option:hover {
-  background: rgba(88,199,255,0.16);
+.layer-card__table-option:hover,
+.layer-card__table-option:focus-visible {
+  background: rgba(88,199,255,0.14);
   border-color: rgba(125,211,252,0.34);
+  box-shadow: 0 0 18px rgba(88,199,255,0.08);
 }
 
 .layer-card__table-option span {
@@ -1292,8 +1425,9 @@ select:focus-visible,
   margin-top: 10px;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid rgba(125,211,252,0.12);
-  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(125,211,252,0.18);
+  background: rgba(7, 13, 25, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .active-layer-card__menu.hidden {
@@ -1454,8 +1588,9 @@ select:focus-visible,
   margin-top: 10px;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid rgba(125,211,252,0.12);
-  background: rgba(0,0,0,0.18);
+  border: 1px solid rgba(125,211,252,0.18);
+  background: rgba(7, 13, 25, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .active-table-card__menu.hidden {
@@ -1508,19 +1643,6 @@ select:focus-visible,
 
 #inspector * {
   max-width: 100%;
-}
-
-#inspector::-webkit-scrollbar {
-  width: 8px;
-}
-
-#inspector::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.04);
-}
-
-#inspector::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.18);
-  border-radius: 999px;
 }
 
 .inspector__header {
@@ -2194,13 +2316,12 @@ select:focus-visible,
   .sidebar__table-body .esri-grid,
   .sidebar__table-body .esri-grid__grid,
   .sidebar__table-body .esri-grid__content {
-    min-width: 760px;
+    min-width: 780px;
   }
 
   .sidebar__table-body .esri-feature-table {
-    width: max(760px, 100%);
+    width: max(780px, 100%);
     min-height: 100%;
-    border-radius: 10px;
   }
 
 }
