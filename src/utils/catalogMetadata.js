@@ -109,7 +109,7 @@ export function isWebLoadableCatalogItem(meta = {}) {
     type.includes("map service") ||
     type.includes("vector tile") ||
     type.includes("image service") ||
-    (/group layer/i.test(type) && Boolean(meta.id || url)) ||
+    (/group layer/i.test(type) && Boolean(meta.id)) ||
     /\/(FeatureServer|MapServer|VectorTileServer|ImageServer)(\/\d+)?\/?$/i.test(url)
   );
 }
@@ -121,16 +121,16 @@ export function getUnsupportedReason(meta = {}) {
     return "";
   }
 
-  if (!meta.url) {
-    return `${type} does not include a web service URL that can be added directly to the map.`;
-  }
-
   if (/group layer/i.test(type)) {
     return "Group layers need a Portal item ID or resolvable group layer definition so the configured group can be added to the map.";
   }
 
   if (/map package/i.test(type)) {
     return "Map packages are downloadable GIS resources, not directly web-loadable map layers.";
+  }
+
+  if (!meta.url) {
+    return `${type} does not include a web service URL that can be added directly to the map.`;
   }
 
   return `${type} is not directly loadable in this web map.`;

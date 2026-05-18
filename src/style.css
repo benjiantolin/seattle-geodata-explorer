@@ -224,14 +224,23 @@ select:focus-visible,
 }
 
 .sidebar__header {
+  position: sticky;
+  top: -18px;
+  z-index: 12;
   display: grid;
   gap: 8px;
   align-items: start;
-  margin-bottom: 12px;
-  padding: 0 0 12px;
+  width: calc(100% + 36px);
+  margin: -18px -18px 12px;
+  padding: 18px 18px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(88,199,255,0.14), transparent 42%),
+    rgba(7, 13, 25, 0.96);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.16);
   min-width: 0;
-  max-width: 100%;
+  max-width: none;
 }
 
 .sidebar__header-main {
@@ -290,6 +299,23 @@ select:focus-visible,
   min-width: 0;
   overflow-wrap: normal;
   word-break: normal;
+}
+
+.sidebar__attribution {
+  padding-top: 2px;
+  font-size: 0.72rem;
+  color: rgba(226,238,255,0.58);
+}
+
+.sidebar__attribution a {
+  color: #7dd3fc;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.sidebar__attribution a:hover {
+  color: #bae6fd;
+  text-decoration: underline;
 }
 
 .sidebar__toolbar {
@@ -482,7 +508,13 @@ select:focus-visible,
 .sidebar__filter:focus,
 #basemapSelect:focus {
   border-color: rgba(88,199,255,0.68);
-  box-shadow: 0 0 0 4px rgba(88,199,255,0.1);
+  box-shadow: inset 0 0 0 1px rgba(88,199,255,0.38);
+}
+
+.sidebar__sort:focus-visible,
+.sidebar__filter:focus-visible,
+#basemapSelect:focus-visible {
+  outline: none;
 }
 
 .sidebar__sort:disabled,
@@ -680,14 +712,28 @@ select:focus-visible,
 }
 
 .sidebar__table-panel--fullscreen {
+  position: fixed;
   inset: 12px;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  bottom: 12px;
   width: auto;
   height: auto;
+  max-width: none;
   max-height: none;
   min-width: 0;
+  min-height: 0;
   resize: none;
   border-radius: 14px;
+  z-index: 40;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.46), 0 0 42px rgba(88,199,255,0.12);
+}
+
+#app.sidebar-collapsed .sidebar__table-panel--fullscreen {
+  left: 12px;
+  right: 12px;
+  width: auto;
 }
 
 .sidebar__table-panel--fullscreen::after {
@@ -729,6 +775,7 @@ select:focus-visible,
 }
 
 /* Scoped ArcGIS FeatureTable workspace support */
+.sidebar__table-body .esri-widget,
 .sidebar__table-body .esri-feature-table,
 .sidebar__table-body .esri-grid,
 .sidebar__table-body .esri-grid__grid,
@@ -739,17 +786,45 @@ select:focus-visible,
 .sidebar__table-body .esri-feature-table {
   width: max(780px, 100%);
   min-height: 100%;
+  background: #050b16 !important;
+  color: #f7fbff !important;
+}
+
+.sidebar__table-body .esri-grid,
+.sidebar__table-body .esri-grid__grid,
+.sidebar__table-body .esri-grid__content {
+  background: #050b16 !important;
+  color: #f7fbff !important;
 }
 
 .sidebar__table-body .esri-grid__cell,
 .sidebar__table-body .esri-feature-table__cell {
   font-size: 0.88rem;
   line-height: 1.45;
+  color: rgba(247,251,255,0.9) !important;
+  background: rgba(5,11,22,0.96) !important;
+  border-color: rgba(125,211,252,0.12) !important;
 }
 
 .sidebar__table-body .esri-grid__header,
 .sidebar__table-body .esri-feature-table__header {
   font-size: 0.84rem;
+  color: #f7fbff !important;
+  background: #07101e !important;
+  border-color: rgba(125,211,252,0.18) !important;
+}
+
+.sidebar__table-body .esri-grid__header .esri-grid__cell,
+.sidebar__table-body .esri-feature-table__header .esri-feature-table__cell {
+  color: #f7fbff !important;
+  background: #081827 !important;
+  font-weight: 700;
+}
+
+.sidebar__table-body .esri-grid__row:hover .esri-grid__cell,
+.sidebar__table-body .esri-feature-table__row:hover .esri-feature-table__cell {
+  background: rgba(88,199,255,0.12) !important;
+  color: #f7fbff !important;
 }
 
 .sidebar__table-body .esri-grid__row--selected .esri-grid__cell,
@@ -757,7 +832,33 @@ select:focus-visible,
 .sidebar__table-body .esri-grid__cell--selected,
 .sidebar__table-body .esri-feature-table__row--selected .esri-feature-table__cell,
 .sidebar__table-body .esri-feature-table__cell--selected {
-  color: #f7fbff;
+  background: rgba(7,28,46,0.98) !important;
+  color: #f7fbff !important;
+  border-color: rgba(125,211,252,0.55) !important;
+}
+
+.sidebar__table-body .esri-grid__cell:focus,
+.sidebar__table-body .esri-grid__cell:focus-visible,
+.sidebar__table-body .esri-feature-table__cell:focus,
+.sidebar__table-body .esri-feature-table__cell:focus-visible {
+  outline: 2px solid #58c7ff !important;
+  outline-offset: -2px;
+  background: rgba(88,199,255,0.24) !important;
+  color: #f7fbff !important;
+}
+
+.sidebar__table-body .esri-grid__cell a,
+.sidebar__table-body .esri-feature-table__cell a,
+.sidebar__table-body .esri-grid__cell--selected a,
+.sidebar__table-body .esri-feature-table__cell--selected a,
+.sidebar__table-body .esri-grid__row--selected a,
+.sidebar__table-body .esri-grid__row[aria-selected="true"] a {
+  color: #bae6fd !important;
+}
+
+.sidebar__table-body .esri-grid__cell span,
+.sidebar__table-body .esri-feature-table__cell span {
+  color: inherit !important;
 }
 
 .sidebar__table-resize-handle {
@@ -1477,7 +1578,201 @@ select:focus-visible,
 
 .active-layer-card__opacity {
   width: 100%;
-  accent-color: var(--accent-blue);
+  height: 18px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.active-layer-card__opacity::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      to right,
+      var(--accent-blue) 0,
+      var(--accent-blue) var(--opacity-fill, 100%),
+      rgba(247,251,255,0.18) var(--opacity-fill, 100%),
+      rgba(247,251,255,0.18) 100%
+    );
+}
+
+.active-layer-card__opacity::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(247,251,255,0.18);
+}
+
+.active-layer-card__opacity::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--accent-blue);
+}
+
+.active-layer-card__opacity::-webkit-slider-thumb {
+  width: 13px;
+  height: 13px;
+  margin-top: -4.5px;
+  border: 2px solid var(--accent-blue);
+  border-radius: 50%;
+  background: #f7fbff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  cursor: grab;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.active-layer-card__opacity::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--accent-blue);
+  border-radius: 50%;
+  background: #f7fbff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  cursor: grab;
+}
+
+.active-layer-card__opacity:focus-visible {
+  outline: none;
+}
+
+.active-layer-card__opacity:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #58c7ff;
+  outline-offset: 2px;
+}
+
+.active-layer-card__opacity:focus-visible::-moz-range-thumb {
+  outline: 2px solid #58c7ff;
+  outline-offset: 2px;
+}
+
+.active-layer-card__scale-setting {
+  gap: 6px;
+}
+
+.active-layer-card__scale-summary {
+  color: #bae6fd;
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.active-layer-card__scale-range {
+  position: relative;
+  height: 18px;
+  border-radius: 999px;
+}
+
+.active-layer-card__scale-range::before,
+.active-layer-card__scale-range::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  height: 4px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.active-layer-card__scale-range::before {
+  left: 0;
+  right: 0;
+  background: rgba(247,251,255,0.18);
+}
+
+.active-layer-card__scale-range::after {
+  left: var(--scale-start);
+  right: calc(100% - var(--scale-end));
+  background: var(--accent-blue);
+}
+
+.active-layer-card__scale {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+.active-layer-card__scale::-webkit-slider-runnable-track {
+  height: 18px;
+  background: transparent;
+}
+
+.active-layer-card__scale::-moz-range-track {
+  height: 18px;
+  background: transparent;
+}
+
+.active-layer-card__scale::-webkit-slider-thumb {
+  width: 13px;
+  height: 13px;
+  margin-top: 2.5px;
+  border: 2px solid var(--accent-blue);
+  border-radius: 50%;
+  background: #f7fbff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  cursor: grab;
+  pointer-events: auto;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.active-layer-card__scale::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--accent-blue);
+  border-radius: 50%;
+  background: #f7fbff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.active-layer-card__scale:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #58c7ff;
+  outline-offset: 2px;
+}
+
+.active-layer-card__scale:focus-visible::-moz-range-thumb {
+  outline: 2px solid #58c7ff;
+  outline-offset: 2px;
+}
+
+.active-layer-card__scale-edge-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.68rem;
+  color: rgba(247,251,255,0.64);
+}
+
+.active-layer-card__scale-edge-labels output {
+  color: rgba(247,251,255,0.9);
+  font-variant-numeric: tabular-nums;
+}
+
+.active-layer-card__scale-reset {
+  justify-self: start;
+  border: 1px solid rgba(125,211,252,0.16);
+  border-radius: 7px;
+  padding: 3px 7px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(247,251,255,0.82);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.active-layer-card__scale-reset:hover,
+.active-layer-card__scale-reset:focus-visible {
+  background: rgba(88,199,255,0.14);
+  color: #f7fbff;
 }
 
 .active-layer-card__metadata {
@@ -2049,6 +2344,13 @@ select:focus-visible,
     padding: 16px;
   }
 
+  .sidebar__header {
+    top: -16px;
+    width: calc(100% + 32px);
+    margin: -16px -16px 12px;
+    padding: 16px 16px 12px;
+  }
+
   .map-tools-expand-content {
     max-width: min(340px, calc(100vw - 450px));
   }
@@ -2145,13 +2447,19 @@ select:focus-visible,
   }
 
   #sidebar.sidebar--collapsed .sidebar__header {
+    position: static;
     display: grid;
-    margin-bottom: 0;
-    padding-bottom: 0;
+    width: auto;
+    margin: 0;
+    padding: 0;
     border-bottom: none;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   #sidebar.sidebar--collapsed .sidebar__brand-subtitle,
+  #sidebar.sidebar--collapsed .sidebar__attribution,
   #sidebar.sidebar--collapsed .sidebar__toolbar-button:not(.sidebar__collapse-button),
   #sidebar.sidebar--collapsed .sidebar__rail-title {
     display: none;
@@ -2166,8 +2474,11 @@ select:focus-visible,
   }
 
   .sidebar__header {
+    top: -24px;
     gap: 8px;
-    margin-bottom: 10px;
+    width: calc(100% + 28px);
+    margin: -24px -14px 10px;
+    padding: 24px 14px 12px;
   }
 
   .sidebar__header-main {
@@ -2340,6 +2651,14 @@ select:focus-visible,
 
   .sidebar__brand-subtitle {
     max-width: none;
+  }
+
+  .sidebar__header {
+    width: calc(100% + 24px);
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .sidebar__tabs {

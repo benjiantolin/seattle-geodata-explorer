@@ -166,11 +166,20 @@ async function createGroupLayerFromPortalItem(meta) {
     );
   }
 
-  const layer = await Layer.fromPortalItem({
-    portalItem: {
-      id: meta.id,
-    },
-  });
+  let layer;
+  try {
+    layer = await Layer.fromPortalItem({
+      portalItem: {
+        id: meta.id,
+      },
+    });
+  } catch (error) {
+    const detail = error?.message ? ` Detail: ${error.message}` : "";
+    throw new Error(
+      `This group layer could not be loaded from its Portal item. The item may not be publicly accessible, may require a specific Portal context, or may not be loadable as a layer through the ArcGIS Maps SDK.${detail}`,
+    );
+  }
+
   layer.title = layer.title || normalizedTitle(meta);
   return {
     layer,

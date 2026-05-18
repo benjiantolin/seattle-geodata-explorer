@@ -95,6 +95,21 @@ const SIDEBAR_WIDTH_KEY = "seattleGeoExplorer.sidebarWidth";
 const SIDEBAR_COLLAPSED_KEY = "seattleGeoExplorer.sidebarCollapsed";
 const SIDEBAR_MIN_WIDTH = 360;
 const SIDEBAR_MAX_WIDTH = 600;
+const SCALE_STOPS = [
+  { label: "1:2M", scale: 2000000 },
+  { label: "1:1M", scale: 1000000 },
+  { label: "1:500k", scale: 500000 },
+  { label: "1:250k", scale: 250000 },
+  { label: "1:100k", scale: 100000 },
+  { label: "1:50k", scale: 50000 },
+  { label: "1:24k", scale: 24000 },
+  { label: "1:10k", scale: 10000 },
+  { label: "1:5k", scale: 5000 },
+  { label: "1:2k", scale: 2000 },
+  { label: "1:1k", scale: 1000 },
+  { label: "1:500", scale: 500 },
+];
+const SCALE_RANGE_MAX = SCALE_STOPS.length + 1;
 let activeLayers = [];
 let activeTables = [];
 let searchQuery = "";
@@ -163,6 +178,7 @@ header.innerHTML = `
     </div>
   </div>
   <div class="sidebar__brand-subtitle">Search Seattle public GIS data, load live layers, and inspect attributes from one map-first workspace.</div>
+  <div class="sidebar__attribution">Built with ☕ by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a></div>
 `;
 
 const toolbarButtons = header.querySelectorAll(".sidebar__toolbar-button");
@@ -405,6 +421,7 @@ tablePanel
       tableState.mode = "normal";
       resetTablePanelPosition();
     } else {
+      resetTablePanelPosition();
       tableState.mode = "fullscreen";
     }
     renderTablePanel();
@@ -455,11 +472,6 @@ activePanel.appendChild(activeTablesContainer);
 
 sidebar.appendChild(catalogPanel);
 sidebar.appendChild(activePanel);
-
-const sidebarFooter = document.createElement("div");
-sidebarFooter.className = "sidebar__footer";
-sidebarFooter.innerHTML = `Built with <span class="footer-coffee">☕</span> by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a>`;
-sidebar.appendChild(sidebarFooter);
 
 const sidebarResizeHandle = document.createElement("div");
 sidebarResizeHandle.className = "sidebar__resize-handle";
@@ -1089,13 +1101,14 @@ async function openLayerChoice(meta, layerInfo) {
     type: layerInfo.type || meta.type,
     parentTitle: meta.title,
     parentUrl: meta.url,
+    parentId: meta.id,
     layerChoiceKey: getLayerChoiceKey(meta, layerInfo),
     supportsTable: layerInfo.supportsTable,
   };
 
   if (isLayerActive(selectedMeta)) {
     scrollToActiveLayer(getLayerId(selectedMeta));
-    return;
+    return true;
   }
 
   try {
@@ -1104,6 +1117,7 @@ async function openLayerChoice(meta, layerInfo) {
       ...result,
       supportsTable: layerInfo.supportsTable ?? result.supportsTable,
     });
+    return true;
   } catch (error) {
     showInspector(
       {
@@ -1113,12 +1127,28 @@ async function openLayerChoice(meta, layerInfo) {
       },
       "Layer Load Error",
     );
+    return false;
   }
 }
 
 async function loadAllLayerChoices(meta, layerChoices = []) {
+  const failures = [];
   for (const layerInfo of layerChoices) {
-    await openLayerChoice(meta, layerInfo);
+    const loaded = await openLayerChoice(meta, layerInfo);
+    if (!loaded) {
+      failures.push(layerInfo.name || layerInfo.title || `Layer ${layerInfo.id}`);
+    }
+  }
+
+  if (failures.length) {
+    showInspector(
+      {
+        Dataset: meta.title || "Untitled dataset",
+        Loaded: `${layerChoices.length - failures.length} of ${layerChoices.length}`,
+        Failed: failures.join(", "),
+      },
+      "Some Layers Could Not Load",
+    );
   }
 }
 
@@ -1139,15 +1169,35 @@ function addResolvedLayer(meta, layer, options = {}) {
   layer.visible = true;
   map.addLayer(layer);
 
-  activeLayers.push({
+  const activeItem = {
     meta,
     layer,
     visible: true,
+    defaultScaleRange: getLayerScaleRange(layer),
+    scaleRangeTouched: false,
     supportsTable:
       options.supportsTable ??
       meta.supportsTable ??
       layer.type === "feature",
-  });
+  };
+  activeLayers.push(activeItem);
+
+  if (typeof layer.load === "function") {
+    layer
+      .load()
+      .then(() => {
+        const loadedScaleRange = getLayerScaleRange(layer);
+        if (!sameScaleRange(activeItem.defaultScaleRange, loadedScaleRange)) {
+          activeItem.defaultScaleRange = loadedScaleRange;
+          if (!activeItem.scaleRangeTouched) {
+            renderActiveLayers();
+          }
+        }
+      })
+      .catch(() => {
+        // The map layer itself will surface load errors through the existing flow.
+      });
+  }
 
   switchTab("active");
   renderUI();
@@ -1240,30 +1290,65 @@ function openTableService(meta, tableInfo) {
   renderTablePanel();
 }
 
-function handleRemoveLayer(meta) {
-  const key = getDatasetKey(meta);
-  const index = activeLayers.findIndex(
-    (item) => getDatasetKey(item.meta) === key,
-  );
-  if (index < 0) {
+function isSameTableMeta(first = {}, second = {}) {
+  if (!first || !second) {
+    return false;
+  }
+
+  if (first.url && second.url && first.url === second.url) {
+    return true;
+  }
+
+  return Boolean(first.title && second.title && first.title === second.title);
+}
+
+function closeTableIfActive(tableMeta = {}) {
+  if (!isSameTableMeta(tableState.layerMeta, tableMeta)) {
     return;
   }
 
-  const item = activeLayers[index];
-  map.removeLayer(item.layer.id);
-  activeLayers.splice(index, 1);
+  tableState = {
+    layerMeta: null,
+    layer: null,
+    visible: false,
+    mode: "normal",
+    loaded: false,
+    columns: [],
+    rows: [],
+  };
 
-  if (getDatasetKey(tableState.layerMeta) === key) {
-    tableState = {
-      layerMeta: null,
-      layer: null,
-      visible: false,
-      mode: tableState.mode || "normal",
-      loaded: false,
-      columns: [],
-      rows: [],
-    };
+  if (featureTable) {
+    featureTable.layer = null;
   }
+  resetTablePanelPosition();
+  renderTablePanel();
+}
+
+function removeActiveTable(tableMeta = {}) {
+  activeTables = activeTables.filter((table) => !isSameTableMeta(table, tableMeta));
+  closeTableIfActive(tableMeta);
+  renderUI();
+}
+
+function handleRemoveLayer(meta) {
+  const layersToRemove = activeLayers.filter((item) =>
+    isActiveLayerMatch(item.meta, meta),
+  );
+  if (!layersToRemove.length) {
+    return;
+  }
+
+  layersToRemove.forEach((item) => {
+    map.removeLayer(item.layer.id);
+  });
+  activeLayers = activeLayers.filter(
+    (item) => !isActiveLayerMatch(item.meta, meta),
+  );
+  activeTables = activeTables.filter(
+    (tableMeta) => !layersToRemove.some((item) => isSameTableMeta(tableMeta, item.meta)),
+  );
+
+  layersToRemove.forEach((item) => closeTableIfActive(item.meta));
 
   renderUI();
 }
@@ -1319,8 +1404,33 @@ function getLayerChoiceKey(meta = {}, layerInfo = {}) {
 }
 
 function isLayerActive(meta) {
-  const key = getDatasetKey(meta);
-  return activeLayers.some((item) => getDatasetKey(item.meta) === key);
+  return activeLayers.some((item) => isActiveLayerMatch(item.meta, meta));
+}
+
+function isActiveLayerMatch(activeMeta = {}, targetMeta = {}) {
+  const activeKey = getDatasetKey(activeMeta);
+  const targetKey = getDatasetKey(targetMeta);
+
+  if (!activeKey || !targetKey) {
+    return false;
+  }
+
+  if (activeKey === targetKey) {
+    return true;
+  }
+
+  if (targetMeta.layerChoiceKey) {
+    return false;
+  }
+
+  return (
+    (targetMeta.url && activeMeta.parentUrl === targetMeta.url) ||
+    (targetMeta.id && activeMeta.parentId === targetMeta.id) ||
+    (!targetMeta.url &&
+      !targetMeta.id &&
+      targetMeta.title &&
+      activeMeta.parentTitle === targetMeta.title)
+  );
 }
 
 function getLayerId(meta) {
@@ -1340,6 +1450,146 @@ function scrollToActiveLayer(layerId) {
   });
 }
 
+function usefulScale(value) {
+  const scale = Number(value);
+  return Number.isFinite(scale) && scale > 0 ? scale : 0;
+}
+
+function closestScaleStopIndex(scale) {
+  const useful = usefulScale(scale);
+  if (!useful) {
+    return -1;
+  }
+
+  let closestIndex = 0;
+  let closestDistance = Infinity;
+  SCALE_STOPS.forEach((stop, index) => {
+    const distance = Math.abs(Math.log(stop.scale) - Math.log(useful));
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestIndex = index;
+    }
+  });
+  return closestIndex;
+}
+
+function scaleLabel(scale) {
+  const index = closestScaleStopIndex(scale);
+  return index >= 0 ? SCALE_STOPS[index]?.label || "Any" : "Any";
+}
+
+function minScalePosition(scale) {
+  const index = closestScaleStopIndex(scale);
+  return index >= 0 ? index + 1 : 0;
+}
+
+function maxScalePosition(scale) {
+  const index = closestScaleStopIndex(scale);
+  return index >= 0 ? index + 1 : SCALE_RANGE_MAX;
+}
+
+function minScaleFromPosition(position) {
+  const index = Number(position) - 1;
+  return index >= 0 ? SCALE_STOPS[index]?.scale || 0 : 0;
+}
+
+function maxScaleFromPosition(position) {
+  const numericPosition = Number(position);
+  if (numericPosition >= SCALE_RANGE_MAX) {
+    return 0;
+  }
+  const index = numericPosition - 1;
+  return index >= 0 ? SCALE_STOPS[index]?.scale || 0 : 0;
+}
+
+function scalePositionLabel(position, edge) {
+  const numericPosition = Number(position);
+  if (edge === "min" && numericPosition <= 0) {
+    return "Any";
+  }
+  if (edge === "max" && numericPosition >= SCALE_RANGE_MAX) {
+    return "Any";
+  }
+  const index = numericPosition - 1;
+  return index >= 0 ? SCALE_STOPS[index]?.label || "Any" : "Any";
+}
+
+function scaleRangeSummary(minScale, maxScale) {
+  const zoomedOut = usefulScale(minScale);
+  const zoomedIn = usefulScale(maxScale);
+
+  if (!zoomedOut && !zoomedIn) {
+    return "All scales";
+  }
+
+  if (zoomedOut && zoomedIn) {
+    return `${scaleLabel(zoomedOut)} to ${scaleLabel(zoomedIn)}`;
+  }
+
+  if (zoomedOut) {
+    return `${scaleLabel(zoomedOut)} and closer`;
+  }
+
+  return `Up to ${scaleLabel(zoomedIn)}`;
+}
+
+function normalizeScaleRange(minScale, maxScale, changedSide = "") {
+  let normalizedMinScale = usefulScale(minScale);
+  let normalizedMaxScale = usefulScale(maxScale);
+
+  if (
+    normalizedMinScale &&
+    normalizedMaxScale &&
+    normalizedMaxScale >= normalizedMinScale
+  ) {
+    if (changedSide === "min") {
+      normalizedMaxScale = 0;
+    } else {
+      normalizedMinScale = 0;
+    }
+  }
+
+  return {
+    minScale: normalizedMinScale,
+    maxScale: normalizedMaxScale,
+  };
+}
+
+function normalizeScalePositions(minPosition, maxPosition, changedSide = "") {
+  let normalizedMinPosition = Math.max(
+    0,
+    Math.min(SCALE_RANGE_MAX, Number(minPosition)),
+  );
+  let normalizedMaxPosition = Math.max(
+    0,
+    Math.min(SCALE_RANGE_MAX, Number(maxPosition)),
+  );
+
+  if (normalizedMinPosition > normalizedMaxPosition) {
+    if (changedSide === "min") {
+      normalizedMaxPosition = normalizedMinPosition;
+    } else {
+      normalizedMinPosition = normalizedMaxPosition;
+    }
+  }
+
+  return {
+    minPosition: normalizedMinPosition,
+    maxPosition: normalizedMaxPosition,
+  };
+}
+
+function getLayerScaleRange(layer = {}) {
+  return normalizeScaleRange(layer.minScale, layer.maxScale);
+}
+
+function sameScaleRange(first = {}, second = {}) {
+  return (
+    usefulScale(first.minScale) === usefulScale(second.minScale) &&
+    usefulScale(first.maxScale) === usefulScale(second.maxScale)
+  );
+}
+
 function renderCatalogItem(meta) {
   const active = isLayerActive(meta);
   const datasetKey = getDatasetKey(meta);
@@ -1355,20 +1605,22 @@ function renderCatalogItem(meta) {
     },
     {
       primaryText: layerChoices.length
-        ? "Layers"
+        ? active
+          ? "Remove"
+          : "Layers"
         : tableChoices.length
           ? "Tables"
-        : active
-          ? "Remove"
-          : loadable
-            ? "Add"
-            : "Details",
+          : active
+            ? "Remove"
+            : loadable
+              ? "Add"
+              : "Details",
       active,
       variant: "portal",
       datasetKey,
       layerChoices,
       tableChoices,
-      primaryOpensMenu: hasChoices,
+      primaryOpensMenu: hasChoices && !active,
       onLayerOpen: openLayerChoice,
       onLoadAllLayers: loadAllLayerChoices,
       onTableOpen: openTableService,
@@ -1391,6 +1643,9 @@ function renderActiveItem(item) {
   );
   const opacity =
     typeof item.layer.opacity === "number" ? item.layer.opacity : 1;
+  const scaleRange = getLayerScaleRange(item.layer);
+  const minScaleIndex = minScalePosition(scaleRange.minScale);
+  const maxScaleIndex = maxScalePosition(scaleRange.maxScale);
   const owner = escapeHtml(getDisplayOwner(item.meta) || item.meta.source || "Seattle GIS");
   const type = escapeHtml(getTypeLabel(item.meta.type));
   const supportsTable = item.supportsTable !== false;
@@ -1416,7 +1671,22 @@ function renderActiveItem(item) {
           <span>Opacity</span>
           <span class="active-layer-card__setting-value">${Math.round(opacity * 100)}%</span>
         </label>
-        <input type="range" min="0" max="1" step="0.05" value="${opacity}" class="active-layer-card__opacity" aria-label="Layer opacity" />
+        <input type="range" min="0" max="1" step="0.05" value="${opacity}" class="active-layer-card__opacity" style="--opacity-fill: ${opacity * 100}%;" aria-label="Layer opacity" />
+      </div>
+      <div class="active-layer-card__setting active-layer-card__scale-setting">
+        <div class="active-layer-card__setting-label">
+          <span>Visible scale</span>
+          <span class="active-layer-card__scale-summary">${escapeHtml(scaleRangeSummary(scaleRange.minScale, scaleRange.maxScale))}</span>
+        </div>
+        <div class="active-layer-card__scale-range" style="--scale-start: ${(minScaleIndex / SCALE_RANGE_MAX) * 100}%; --scale-end: ${(maxScaleIndex / SCALE_RANGE_MAX) * 100}%;">
+          <input type="range" min="0" max="${SCALE_RANGE_MAX}" step="1" value="${minScaleIndex}" class="active-layer-card__scale active-layer-card__min-scale" aria-label="Zoomed-out visibility limit" />
+          <input type="range" min="0" max="${SCALE_RANGE_MAX}" step="1" value="${maxScaleIndex}" class="active-layer-card__scale active-layer-card__max-scale" aria-label="Zoomed-in visibility limit" />
+        </div>
+        <div class="active-layer-card__scale-edge-labels" aria-hidden="true">
+          <span>Out: <output class="active-layer-card__min-scale-output">${escapeHtml(scalePositionLabel(minScaleIndex, "min"))}</output></span>
+          <span>In: <output class="active-layer-card__max-scale-output">${escapeHtml(scalePositionLabel(maxScaleIndex, "max"))}</output></span>
+        </div>
+        <button type="button" class="active-layer-card__scale-reset">Reset</button>
       </div>
       <div class="active-layer-card__metadata">
         <div><span>Type</span>${type}</div>
@@ -1439,6 +1709,52 @@ function renderActiveItem(item) {
   const removeButton = card.querySelectorAll(".action-button")[3];
   const opacityInput = card.querySelector(".active-layer-card__opacity");
   const opacityValue = card.querySelector(".active-layer-card__setting-value");
+  const minScaleInput = card.querySelector(".active-layer-card__min-scale");
+  const maxScaleInput = card.querySelector(".active-layer-card__max-scale");
+  const scaleRangeTrack = card.querySelector(".active-layer-card__scale-range");
+  const minScaleOutput = card.querySelector(".active-layer-card__min-scale-output");
+  const maxScaleOutput = card.querySelector(".active-layer-card__max-scale-output");
+  const scaleSummary = card.querySelector(".active-layer-card__scale-summary");
+  const scaleResetButton = card.querySelector(".active-layer-card__scale-reset");
+
+  const updateScaleControls = (changedSide = "") => {
+    const nextPositions = normalizeScalePositions(
+      minScaleInput.value,
+      maxScaleInput.value,
+      changedSide,
+    );
+    const nextRange = normalizeScaleRange(
+      minScaleFromPosition(nextPositions.minPosition),
+      maxScaleFromPosition(nextPositions.maxPosition),
+      changedSide === "min" ? "min" : "max",
+    );
+
+    item.layer.minScale = nextRange.minScale;
+    item.layer.maxScale = nextRange.maxScale;
+    item.scaleRangeTouched = !sameScaleRange(
+      nextRange,
+      item.defaultScaleRange || { minScale: 0, maxScale: 0 },
+    );
+
+    const nextMinIndex = minScalePosition(nextRange.minScale);
+    const nextMaxIndex = maxScalePosition(nextRange.maxScale);
+    minScaleInput.value = String(nextMinIndex);
+    maxScaleInput.value = String(nextMaxIndex);
+    scaleRangeTrack.style.setProperty(
+      "--scale-start",
+      `${(nextMinIndex / SCALE_RANGE_MAX) * 100}%`,
+    );
+    scaleRangeTrack.style.setProperty(
+      "--scale-end",
+      `${(nextMaxIndex / SCALE_RANGE_MAX) * 100}%`,
+    );
+    minScaleOutput.textContent = scalePositionLabel(nextMinIndex, "min");
+    maxScaleOutput.textContent = scalePositionLabel(nextMaxIndex, "max");
+    scaleSummary.textContent = scaleRangeSummary(
+      nextRange.minScale,
+      nextRange.maxScale,
+    );
+  };
 
   visibilityButton.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -1491,6 +1807,31 @@ function renderActiveItem(item) {
     const alpha = Number(event.target.value);
     item.layer.opacity = alpha;
     opacityValue.textContent = `${Math.round(alpha * 100)}%`;
+    event.target.style.setProperty("--opacity-fill", `${alpha * 100}%`);
+  });
+
+  [minScaleInput, maxScaleInput, scaleResetButton].forEach((control) => {
+    control?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+  });
+
+  minScaleInput?.addEventListener("input", (event) => {
+    event.stopPropagation();
+    updateScaleControls("min");
+  });
+
+  maxScaleInput?.addEventListener("input", (event) => {
+    event.stopPropagation();
+    updateScaleControls("max");
+  });
+
+  scaleResetButton?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const defaultRange = item.defaultScaleRange || { minScale: 0, maxScale: 0 };
+    minScaleInput.value = String(minScalePosition(defaultRange.minScale));
+    maxScaleInput.value = String(maxScalePosition(defaultRange.maxScale));
+    updateScaleControls();
   });
 
   card.addEventListener("click", () => {
@@ -1551,8 +1892,7 @@ function renderActiveTableItem(tableMeta) {
 
   removeButton.addEventListener("click", (event) => {
     event.stopPropagation();
-    activeTables = activeTables.filter((t) => t.title !== tableMeta.title);
-    renderUI();
+    removeActiveTable(tableMeta);
   });
 
   return card;
@@ -1580,6 +1920,10 @@ function openTablePanel() {
   tableState.visible = true;
 
   if (!isMobileLayout()) {
+    if (tableState.mode === "mobile-fullscreen") {
+      tableState.mode = "normal";
+      resetTablePanelPosition();
+    }
     return;
   }
 
@@ -1594,7 +1938,7 @@ function renderTablePanel() {
   const tableInfo = tablePanel.querySelector(".sidebar__table-layer");
   const tableMessage = tablePanel.querySelector(".sidebar__table-message");
   const isMobile = isMobileLayout();
-  const isFullscreen = tableState.mode === "fullscreen";
+  const isFullscreen = tableState.mode === "fullscreen" && !isMobile;
 
   setIcon(toggle, faCircleXmark);
   setIcon(restoreButton, isFullscreen ? faCompress : faExpand);
