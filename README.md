@@ -126,6 +126,6 @@ This project is open source and built for educational, civic technology, and com
 
 ## Author
 
-Built with care by [Benji](https://github.com/benjiantolin).
+Built with 🤖 by [Benji](https://github.com/benjiantolin).
 
 Special thanks to GitHub Copilot, ChatGPT, and Codex for supporting rapid development and iteration.

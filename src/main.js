@@ -87,7 +87,7 @@ map.view.when(() => {
   }
 
   const existingAttribution = map.view.attribution.text;
-  map.view.attribution.text = `${existingAttribution} | Built with ☕ by Benji`;
+  map.view.attribution.text = `${existingAttribution} | Built with 🤖 by Benji`;
 });
 
 const catalogData = getAllCatalog();
@@ -178,7 +178,7 @@ header.innerHTML = `
     </div>
   </div>
   <div class="sidebar__brand-subtitle">Search Seattle public GIS data, load live layers, and inspect attributes from one map-first workspace.</div>
-  <div class="sidebar__attribution">Built with ☕ by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a></div>
+  <div class="sidebar__attribution">Built with 🤖 by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a></div>
 `;
 
 const toolbarButtons = header.querySelectorAll(".sidebar__toolbar-button");
