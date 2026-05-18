@@ -54,7 +54,7 @@ const sidebar = document.getElementById("sidebar");
 const app = document.getElementById("app");
 const splashOverlay = document.getElementById("splashOverlay");
 const APP_BASE_URL = import.meta.env.BASE_URL || "/";
-const LOGO_URL = `${APP_BASE_URL.replace(/\/?$/, "/")}logo.svg`;
+const LOGO_URL = `${APP_BASE_URL.replace(/\/?$/, "/")}assets/brand/seattle-geodata-explorer-icon-master.png`;
 if (splashOverlay) {
   setIcon(splashOverlay.querySelector(".splash-overlay__close"), faCircleXmark);
   const hideSplash = () => {
@@ -89,8 +89,8 @@ map.view.when(() => {
 const catalogData = getAllCatalog();
 const SIDEBAR_WIDTH_KEY = "seattleGeoExplorer.sidebarWidth";
 const SIDEBAR_COLLAPSED_KEY = "seattleGeoExplorer.sidebarCollapsed";
-const SIDEBAR_MIN_WIDTH = 320;
-const SIDEBAR_MAX_WIDTH = 560;
+const SIDEBAR_MIN_WIDTH = 360;
+const SIDEBAR_MAX_WIDTH = 600;
 let activeLayers = [];
 let activeTables = [];
 let searchQuery = "";
@@ -144,7 +144,7 @@ header.className = "sidebar__header";
 header.innerHTML = `
   <div class="sidebar__header-main">
     <div class="sidebar__brand">
-      <img class="sidebar__brand-logo" src="${LOGO_URL}" alt="Seattle GeoData Explorer logo" width="34" height="34" />
+      <img class="sidebar__brand-logo" src="${LOGO_URL}" alt="Seattle GeoData Explorer logo" width="36" height="36" />
       <div class="sidebar__brand-copy">
         <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
       </div>
@@ -403,7 +403,17 @@ const tableHeader = tablePanel.querySelector(".sidebar__table-header");
 tableHeader.addEventListener("pointerdown", startTablePanelDrag);
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && tableState.mode === "fullscreen") {
+  if (event.key !== "Escape" || !tableState.visible) {
+    return;
+  }
+
+  if (isMobileLayout()) {
+    tableState.visible = false;
+    renderTablePanel();
+    return;
+  }
+
+  if (tableState.mode === "fullscreen") {
     tableState.mode = "normal";
     resetTablePanelPosition();
     renderTablePanel();
@@ -514,9 +524,12 @@ const activeTablesList = new CustomLayerList(
 initializeSidebarState();
 header
   .querySelector("#sidebarToggleButton")
-  ?.addEventListener("click", () => setSidebarCollapsed(!isSidebarCollapsed()));
+  ?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setSidebarCollapsed(!isSidebarCollapsed());
+  });
 sidebar.addEventListener("click", (event) => {
-  if (!isMobileSidebar() || !isSidebarCollapsed()) {
+  if (!isMobileSidebar()) {
     return;
   }
 
@@ -526,7 +539,14 @@ sidebar.addEventListener("click", (event) => {
     return;
   }
 
-  setSidebarCollapsed(false);
+  if (isSidebarCollapsed()) {
+    setSidebarCollapsed(false);
+    return;
+  }
+
+  if (isMobileDrawerHandleClick(event)) {
+    setSidebarCollapsed(true);
+  }
 });
 sidebarResizeHandle.addEventListener("pointerdown", startSidebarResize);
 window.addEventListener("resize", () => {
@@ -535,6 +555,7 @@ window.addEventListener("resize", () => {
   } else {
     setSidebarCollapsed(isSidebarCollapsed(), { persist: false });
   }
+  renderTablePanel();
   map.resize();
 });
 app.addEventListener("transitionend", (event) => {
@@ -571,7 +592,7 @@ function openProjectNotes() {
     </section>
     <section class="project-notes__section">
       <h4>Rapid Prototyping</h4>
-      <p>AI coding assistants supported the development workflow by accelerating iteration and helping test interface ideas quickly. The goal was to pair AI-assisted speed with GIS development judgment, not to replace it.</p>
+      <p>GitHub Copilot, ChatGPT, and Codex supported the development workflow by accelerating iteration, helping test interface ideas quickly, and making rapid prototyping more fluid. The goal was to pair AI-assisted speed with GIS development judgment, not to replace it.</p>
     </section>
     <section class="project-notes__section">
       <h4>What You Can Explore</h4>
@@ -744,7 +765,17 @@ function isSidebarCollapsed() {
 }
 
 function isMobileSidebar() {
+  return isMobileLayout();
+}
+
+function isMobileLayout() {
   return window.matchMedia("(max-width: 820px)").matches;
+}
+
+function isMobileDrawerHandleClick(event) {
+  const bounds = sidebar.getBoundingClientRect();
+  const handleZoneHeight = 36;
+  return event.clientY >= bounds.top && event.clientY <= bounds.top + handleZoneHeight;
 }
 
 function setSidebarCollapsed(collapsed, { persist = true } = {}) {
@@ -1068,7 +1099,7 @@ function openTableService(meta, tableInfo) {
     title: tableInfo.name,
     outFields: ["*"],
   });
-  tableState.visible = true;
+  openTablePanel();
 
   // Add to active tables if not already
   if (!activeTables.some((t) => t.url === tableInfo.url)) {
@@ -1367,7 +1398,7 @@ function renderActiveTableItem(tableMeta) {
       url: tableMeta.url,
       outFields: ["*"],
     });
-    tableState.visible = true;
+    openTablePanel();
     if (featureTable) {
       featureTable.layer = tableState.layer;
     }
@@ -1386,7 +1417,7 @@ function renderActiveTableItem(tableMeta) {
 function prepareTable(item) {
   tableState.layerMeta = item.meta;
   tableState.layer = item.layer;
-  tableState.visible = true;
+  openTablePanel();
   if (featureTable) {
     featureTable.layer = item.layer;
   }
@@ -1401,21 +1432,36 @@ function prepareTable(item) {
   switchTab("active");
 }
 
+function openTablePanel() {
+  tableState.visible = true;
+
+  if (!isMobileLayout()) {
+    return;
+  }
+
+  tableState.mode = "mobile-fullscreen";
+  resetTablePanelPosition();
+  setSidebarCollapsed(true, { persist: false });
+}
+
 function renderTablePanel() {
   const toggle = tablePanel.querySelector(".sidebar__table-toggle");
   const restoreButton = tablePanel.querySelector(".sidebar__table-restore");
   const tableInfo = tablePanel.querySelector(".sidebar__table-layer");
   const tableMessage = tablePanel.querySelector(".sidebar__table-message");
+  const isMobile = isMobileLayout();
 
-  setIcon(toggle, faWindowMinimize);
+  setIcon(toggle, isMobile ? faCircleXmark : faWindowMinimize);
   setIcon(restoreButton, faMinimize);
   tablePanel.classList.toggle("hidden", !tableState.visible);
+  tablePanel.classList.toggle("sidebar__table-panel--mobile", isMobile);
   tablePanel.classList.toggle(
     "sidebar__table-panel--fullscreen",
     tableState.mode === "fullscreen",
   );
-  toggle.setAttribute("aria-label", "Hide table");
-  toggle.title = "Hide table";
+  toggle.setAttribute("aria-label", isMobile ? "Close table" : "Hide table");
+  toggle.title = isMobile ? "Close table" : "Hide table";
+  restoreButton.classList.toggle("hidden", isMobile);
   restoreButton.setAttribute("aria-label", "Restore table size and position");
   restoreButton.title = "Restore table size and position";
 
@@ -1433,8 +1479,9 @@ function renderTablePanel() {
   }
 
   tableInfo.textContent = tableState.layerMeta.title;
-  tableMessage.textContent =
-    "Browsing attributes in a native ArcGIS FeatureTable.";
+  tableMessage.textContent = isMobile
+    ? "Swipe horizontally to browse fields. Scroll vertically to browse records."
+    : "Browsing attributes in a native ArcGIS FeatureTable.";
   if (featureTable) {
     featureTable.layer = tableState.layer;
   }
@@ -1451,6 +1498,7 @@ function resetTablePanelPosition() {
 
 function startTablePanelDrag(event) {
   if (
+    isMobileLayout() ||
     tableState.mode === "fullscreen" ||
     event.button !== 0 ||
     event.target.closest("button")

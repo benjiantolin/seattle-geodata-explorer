@@ -6,7 +6,7 @@ An interactive web application for exploring Seattle's open ArcGIS data services
 
 ## 🎯 About This Project
 
-**Seattle GeoData Explorer** is a Vite-powered application that reimagines how we interact with geospatial data repositories. Built in just a few evenings with the help of GitHub Copilot, this tool showcases the power of combining ArcGIS SDKs with modern web development practices.
+**Seattle GeoData Explorer** is a Vite-powered application that reimagines how we interact with geospatial data repositories. Built in just a few evenings with the help of GitHub Copilot, ChatGPT, and Codex, this tool showcases the power of combining ArcGIS SDKs with modern web development practices.
 
 The application was created as a submission to the **WAGISA Map Contest** (Washington GIS Association) in the **Apps** category—a showcase for interactive browser and mobile experiences that are effective, attractive, functional, and engaging.
 
@@ -78,7 +78,7 @@ All layer metadata is sourced from a single CSV export of [Seattle's Open Data P
 **Category:** Apps - Interactive browser/mobile experiences  
 **Organization:** Washington GIS Association  
 
-This submission demonstrates how modern web development practices and AI-assisted development can rapidly create impactful GIS applications that serve the broader geospatial community.
+This submission demonstrates how modern web development practices and AI-assisted development with GitHub Copilot, ChatGPT, and Codex can rapidly create impactful GIS applications that serve the broader geospatial community.
 
 ---
 
@@ -103,7 +103,7 @@ This project is open source and built for educational and community purposes.
 
 Built with ☕ by [Benji](https://github.com/benjiantolin)
 
-*Special thanks to GitHub Copilot for making rapid development possible.*
+*Special thanks to GitHub Copilot, ChatGPT, and Codex for supporting rapid development and iteration.*
 
 ---
 

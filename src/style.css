@@ -9,10 +9,10 @@
   --accent-blue: #58c7ff;
   --text-primary: #f7fbff;
   --text-secondary: rgba(226, 238, 255, 0.72);
-  --sidebar-width: 380px;
+  --sidebar-width: 440px;
   --sidebar-collapsed-width: 52px;
-  --sidebar-min-width: 320px;
-  --sidebar-max-width: 560px;
+  --sidebar-min-width: 360px;
+  --sidebar-max-width: 600px;
 }
 
 html, body, #app {
@@ -71,7 +71,7 @@ select:focus-visible,
   position: relative;
   width: auto;
   height: 100%;
-  padding: 16px;
+  padding: 18px;
   overflow-x: hidden;
   overflow-y: auto;
   background:
@@ -182,10 +182,10 @@ select:focus-visible,
 
 .sidebar__header {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   align-items: start;
-  margin-bottom: 10px;
-  padding: 0 0 10px;
+  margin-bottom: 12px;
+  padding: 0 0 12px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   min-width: 0;
   max-width: 100%;
@@ -194,7 +194,7 @@ select:focus-visible,
 .sidebar__header-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: 10px;
   align-items: start;
   min-width: 0;
   max-width: 100%;
@@ -202,8 +202,8 @@ select:focus-visible,
 
 .sidebar__brand {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 9px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 10px;
   align-items: center;
   width: 100%;
 }
@@ -217,8 +217,8 @@ select:focus-visible,
 }
 
 .sidebar__brand-logo {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
 }
 
 .sidebar__brand-copy {
@@ -228,7 +228,7 @@ select:focus-visible,
 
 .sidebar__brand-title {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1.18;
@@ -240,7 +240,7 @@ select:focus-visible,
 .sidebar__brand-subtitle {
   margin-top: 0;
   padding-right: 0;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
   line-height: 1.35;
   max-width: 100%;
@@ -252,7 +252,7 @@ select:focus-visible,
 .sidebar__toolbar {
   justify-self: end;
   display: flex;
-  gap: 3px;
+  gap: 5px;
   align-items: center;
   justify-content: flex-end;
   flex-wrap: nowrap;
@@ -262,16 +262,16 @@ select:focus-visible,
 
 .sidebar__toolbar-button,
 .sidebar__toolbar-link {
-  width: 25px;
-  height: 25px;
-  flex: 0 0 25px;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
   display: grid;
   place-items: center;
   border: 1px solid rgba(125,211,252,0.2);
-  border-radius: 7px;
+  border-radius: 8px;
   background: rgba(125,211,252,0.08);
   color: #f6f8ff;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
@@ -303,8 +303,8 @@ select:focus-visible,
 
 .sidebar__controls {
   display: grid;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 12px;
   min-width: 0;
   max-width: 100%;
 }
@@ -318,7 +318,7 @@ select:focus-visible,
 .sidebar__filters {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
   max-width: 100%;
 }
@@ -338,15 +338,15 @@ select:focus-visible,
 
 .sidebar__clear-filters {
   flex: 0 0 auto;
-  min-height: 30px;
-  padding: 5px 9px;
+  min-height: 32px;
+  padding: 6px 10px;
   border: 1px solid rgba(125,211,252,0.16);
   border-radius: 8px;
   background: rgba(255,255,255,0.08);
   color: #f7fbff;
   cursor: pointer;
   font-weight: 700;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
 
 .sidebar__clear-filters:hover:not(:disabled) {
@@ -364,12 +364,12 @@ select:focus-visible,
   max-width: 100%;
   border: 1px solid var(--panel-border);
   border-radius: 10px;
-  padding: 9px 11px;
+  padding: 10px 12px;
   background: rgba(5, 11, 22, 0.92);
   color: #f6f8ff;
   outline: none;
-  font-size: 0.84rem;
-  min-height: 38px;
+  font-size: 0.89rem;
+  min-height: 42px;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
@@ -386,12 +386,12 @@ select:focus-visible,
   width: 100%;
   border: 1px solid var(--panel-border);
   border-radius: 10px;
-  padding: 9px 11px;
+  padding: 10px 12px;
   background: rgba(255,255,255,0.08);
   color: #f8fbff;
   outline: none;
-  font-size: 0.86rem;
-  min-height: 40px;
+  font-size: 0.9rem;
+  min-height: 42px;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
@@ -407,15 +407,15 @@ select:focus-visible,
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  padding: 9px 28px 9px 11px;
+  padding: 10px 30px 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--panel-border);
   background: rgba(5, 11, 22, 0.92);
   color: #f6f8ff;
   outline: none;
   appearance: none;
-  min-height: 38px;
-  font-size: 0.82rem;
+  min-height: 42px;
+  font-size: 0.89rem;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -448,7 +448,7 @@ select:focus-visible,
 }
 
 .sidebar__basemap label {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   opacity: 0.7;
@@ -464,8 +464,8 @@ select:focus-visible,
 }
 
 .sidebar__tab {
-  padding: 9px 12px;
-  min-height: 38px;
+  padding: 10px 12px;
+  min-height: 42px;
   border: 1px solid rgba(125,211,252,0.16);
   border-radius: 10px;
   background: rgba(125,211,252,0.06);
@@ -491,7 +491,7 @@ select:focus-visible,
 .sidebar__summary,
 .sidebar__section-heading {
   margin-bottom: 10px;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   opacity: 0.78;
   display: flex;
   justify-content: space-between;
@@ -537,7 +537,7 @@ select:focus-visible,
   border-radius: 10px;
   background: rgba(255,255,255,0.035);
   color: rgba(247,251,255,0.72);
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   line-height: 1.45;
 }
 
@@ -873,10 +873,10 @@ select:focus-visible,
 .layer-card {
   position: relative;
   display: grid;
-  gap: 7px;
+  gap: 8px;
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 10px 10px 12px;
+  padding: 12px 12px 12px 14px;
   border-radius: 10px;
   background: linear-gradient(180deg, rgba(125,211,252,0.075) 0%, rgba(255,255,255,0.028) 100%);
   border: 1px solid var(--panel-border);
@@ -938,7 +938,7 @@ select:focus-visible,
 .layer-card__title {
   display: -webkit-box;
   margin-bottom: 3px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   line-height: 1.28;
   min-width: 0;
   overflow: hidden;
@@ -959,7 +959,7 @@ select:focus-visible,
 }
 
 .layer-card__created {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: rgba(255,255,255,0.62);
   white-space: nowrap;
   padding-top: 2px;
@@ -967,7 +967,7 @@ select:focus-visible,
 
 .layer-card__description {
   margin: 0 0 8px;
-  font-size: 0.8rem;
+  font-size: 0.83rem;
   line-height: 1.45;
   color: rgba(255,255,255,0.72);
   display: -webkit-box;
@@ -979,7 +979,7 @@ select:focus-visible,
 .layer-card__summary {
   margin-top: 0;
   padding-right: 0;
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   line-height: 1.4;
   color: rgba(255,255,255,0.62);
   display: -webkit-box;
@@ -990,7 +990,7 @@ select:focus-visible,
 
 .layer-card__category-row {
   margin-bottom: 8px;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   color: rgba(255,255,255,0.65);
 }
 
@@ -1006,7 +1006,7 @@ select:focus-visible,
   border-radius: 999px;
   background: rgba(71, 181, 255, 0.12);
   color: #dbeafe;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
 }
 
 .layer-card--portal {
@@ -1035,7 +1035,7 @@ select:focus-visible,
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 999px;
   padding: 2px 6px;
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: #cbd5e1;
@@ -1059,7 +1059,7 @@ select:focus-visible,
 
 .layer-card__type,
 .layer-card__meta {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: rgba(255,255,255,0.65);
 }
 
@@ -1082,8 +1082,8 @@ select:focus-visible,
 .layer-card__menu-toggle {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border: 1px solid rgba(125,211,252,0.18);
   border-radius: 8px;
   background: rgba(255,255,255,0.06);
@@ -1113,7 +1113,7 @@ select:focus-visible,
   border: 1px solid rgba(251,191,36,0.22);
   background: rgba(251,191,36,0.08);
   color: rgba(254,243,199,0.92);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   line-height: 1.45;
 }
 
@@ -1122,7 +1122,7 @@ select:focus-visible,
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px 10px;
   margin-bottom: 8px;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   color: rgba(247,251,255,0.74);
 }
 
@@ -1137,7 +1137,7 @@ select:focus-visible,
   color: rgba(247,251,255,0.48);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
 }
 
 .layer-card__meta-block {
@@ -1147,7 +1147,7 @@ select:focus-visible,
 .layer-card__menu-text {
   max-height: 6.8em;
   overflow: auto;
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   line-height: 1.45;
   color: rgba(255,255,255,0.68);
 }
@@ -1164,7 +1164,7 @@ select:focus-visible,
 
 .layer-card__menu-label {
   margin-bottom: 6px;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1207,13 +1207,13 @@ select:focus-visible,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
 .layer-card__table-option small {
   color: rgba(226,238,255,0.62);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   white-space: nowrap;
 }
 
@@ -1226,7 +1226,7 @@ select:focus-visible,
   display: block;
   width: 100%;
   box-sizing: border-box;
-  padding: 9px 10px;
+  padding: 10px 12px;
   border-radius: 9px;
   background: rgba(7, 16, 29, 0.84);
   border: 1px solid rgba(125,211,252,0.12);
@@ -1248,14 +1248,14 @@ select:focus-visible,
 .active-layer-card__title {
   font-weight: 700;
   margin-bottom: 3px;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .active-layer-card__subtitle {
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   opacity: 0.72;
   line-height: 1.4;
 }
@@ -1271,8 +1271,8 @@ select:focus-visible,
   display: grid;
   place-items: center;
   border: 1px solid rgba(125,211,252,0.16);
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   background: rgba(255,255,255,0.06);
   color: #f8fbff;
@@ -1305,7 +1305,7 @@ select:focus-visible,
 }
 
 .active-layer-card__menu-label {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   margin-bottom: 8px;
   opacity: 0.85;
@@ -1337,7 +1337,7 @@ select:focus-visible,
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: rgba(247,251,255,0.78);
 }
 
@@ -1350,7 +1350,7 @@ select:focus-visible,
   grid-column: 1 / -1;
   display: grid;
   gap: 6px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: rgba(247,251,255,0.74);
 }
 
@@ -1378,14 +1378,15 @@ select:focus-visible,
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 36px;
+  min-height: 38px;
   border: none;
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   background: rgba(255,255,255,0.08);
   color: #f8fbff;
   cursor: pointer;
   text-align: left;
+  font-size: 0.86rem;
 }
 
 .action-button:hover {
@@ -1403,7 +1404,7 @@ select:focus-visible,
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 9px 10px;
+  padding: 10px 12px;
   border-radius: 9px;
   background: rgba(7, 16, 29, 0.84);
   border: 1px solid rgba(125,211,252,0.12);
@@ -1427,12 +1428,12 @@ select:focus-visible,
 .active-table-card__title {
   font-weight: 700;
   margin-bottom: 3px;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   overflow-wrap: anywhere;
 }
 
 .active-table-card__subtitle {
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   opacity: 0.72;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -1465,9 +1466,9 @@ select:focus-visible,
   min-width: 58px;
   border: none;
   border-radius: 8px;
-  padding: 7px 10px;
-  min-height: 32px;
-  font-size: 0.78rem;
+  padding: 8px 11px;
+  min-height: 34px;
+  font-size: 0.82rem;
   color: #fff;
   cursor: pointer;
   transition: background 0.2s, transform 0.2s;
@@ -1744,14 +1745,14 @@ select:focus-visible,
 }
 
 .splash-overlay__logo {
-  width: 56px;
-  height: 56px;
-  flex: 0 0 56px;
-  border-radius: 14px;
+  width: 72px;
+  height: 72px;
+  flex: 0 0 72px;
+  border-radius: 18px;
 }
 
 .splash-overlay__eyebrow {
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #7dd3fc;
@@ -1922,11 +1923,11 @@ select:focus-visible,
 
 @media (max-width: 1100px) {
   #sidebar {
-    padding: 14px;
+    padding: 16px;
   }
 
   .map-tools-expand-content {
-    max-width: min(340px, calc(100vw - 390px));
+    max-width: min(340px, calc(100vw - 450px));
   }
 
   #inspector {
@@ -1970,6 +1971,7 @@ select:focus-visible,
     width: auto;
     max-width: none;
     height: min(calc(100dvh - 18px), 760px);
+    min-height: 0;
     max-height: calc(100vh - 18px);
     padding: 24px 14px 14px;
     overflow-y: auto;
@@ -1990,16 +1992,21 @@ select:focus-visible,
     display: block;
     width: 42px;
     height: 4px;
-    margin: -13px auto 12px;
+    margin: -13px auto 16px;
     border-radius: 999px;
     background: rgba(186,230,253,0.72);
     box-shadow: 0 0 18px rgba(88,199,255,0.28);
+    cursor: pointer;
     z-index: 1;
   }
 
   #sidebar.sidebar--collapsed {
-    padding: 24px 12px 12px;
-    transform: translateY(calc(100% - 76px));
+    height: 78px;
+    min-height: 78px;
+    max-height: 78px;
+    padding: 22px 12px 10px;
+    overflow: hidden;
+    transform: translateY(0);
     pointer-events: auto;
     cursor: pointer;
     box-shadow: 0 -18px 50px rgba(0,0,0,0.4), 0 0 30px rgba(88,199,255,0.1);
@@ -2011,7 +2018,7 @@ select:focus-visible,
 
   #sidebar.sidebar--collapsed::before {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
   #sidebar.sidebar--collapsed .sidebar__header {
@@ -2046,13 +2053,13 @@ select:focus-visible,
   }
 
   .sidebar__brand {
-    grid-template-columns: 32px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr);
     gap: 9px;
   }
 
   .sidebar__brand-logo {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 10px;
   }
 
@@ -2063,6 +2070,15 @@ select:focus-visible,
 
   .sidebar__toolbar {
     justify-content: flex-end;
+    gap: 3px;
+  }
+
+  .sidebar__toolbar-button,
+  .sidebar__toolbar-link {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    font-size: 0.76rem;
   }
 
   .map-tools-expand-content {
@@ -2101,23 +2117,90 @@ select:focus-visible,
   }
 
   .sidebar__table-panel {
-    left: 12px;
-    right: 12px;
-    bottom: 92px;
-    top: auto;
-    width: auto;
-    height: min(62vh, 560px);
-    min-height: 300px;
-    min-width: 0;
-    border-radius: 14px;
-    resize: none;
-  }
-
-  .sidebar__table-panel--fullscreen {
-    inset: 10px;
+    position: fixed;
+    inset: 8px;
+    left: 8px;
+    right: 8px;
+    top: 8px;
+    bottom: 8px;
     width: auto;
     height: auto;
     max-height: none;
+    min-height: 0;
+    min-width: 0;
+    border-radius: 16px;
+    resize: none;
+    overflow: hidden;
+    z-index: 30;
+  }
+
+  .sidebar__table-panel::after,
+  .sidebar__table-resize-handle {
+    display: none;
+  }
+
+  .sidebar__table-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    cursor: default;
+    padding: 14px 14px 12px;
+    align-items: flex-start;
+  }
+
+  .sidebar__table-title {
+    font-size: 0.98rem;
+  }
+
+  .sidebar__table-subtitle {
+    white-space: normal;
+    line-height: 1.35;
+  }
+
+  .sidebar__table-info {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+  }
+
+  .sidebar__table-message {
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+
+  .sidebar__table-toggle,
+  .sidebar__table-load,
+  .sidebar__table-icon-button {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  .sidebar__table-panel--mobile .sidebar__table-restore {
+    display: none !important;
+  }
+
+  .sidebar__table-body {
+    flex: 1;
+    min-height: 0;
+    padding: 12px;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .sidebar__table-body .esri-widget,
+  .sidebar__table-body .esri-feature-table,
+  .sidebar__table-body .esri-grid,
+  .sidebar__table-body .esri-grid__grid,
+  .sidebar__table-body .esri-grid__content {
+    min-width: 760px;
+  }
+
+  .sidebar__table-body .esri-feature-table {
+    width: max(760px, 100%);
+    min-height: 100%;
+    border-radius: 10px;
   }
 
 }
@@ -2173,6 +2256,16 @@ select:focus-visible,
     flex-wrap: wrap;
   }
 
+  .sidebar__table-panel--mobile .sidebar__table-header {
+    align-items: flex-start;
+    flex-direction: row;
+  }
+
+  .sidebar__table-panel--mobile .sidebar__table-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
   .sidebar__table-body {
     padding: 12px;
   }
@@ -2191,9 +2284,9 @@ select:focus-visible,
   }
 
   .splash-overlay__logo {
-    width: 46px;
-    height: 46px;
-    flex-basis: 46px;
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
     border-radius: 12px;
   }
 
