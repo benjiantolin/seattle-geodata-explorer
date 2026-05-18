@@ -59,6 +59,32 @@ export function createLayerCard(meta, actions = {}, options = {}) {
   const tableChoices = Array.isArray(options.tableChoices)
     ? options.tableChoices
     : [];
+  const layerChoices = Array.isArray(options.layerChoices)
+    ? options.layerChoices
+    : [];
+  const layerChooser = layerChoices.length
+    ? `
+      <div class="layer-card__table-picker layer-card__layer-picker" aria-label="Available layers">
+        <div class="layer-card__menu-label">Available layers</div>
+        ${layerChoices.length > 1
+          ? `<button type="button" class="layer-card__table-option layer-card__load-all-layers">
+              <span>Load all layers</span>
+              <small>${layerChoices.length} available layers</small>
+            </button>`
+          : ""}
+        ${layerChoices
+          .map(
+            (layer) => `
+              <button type="button" class="layer-card__table-option layer-card__layer-option" data-layer-id="${escapeHtml(layer.id)}">
+                <span>${escapeHtml(layer.name || layer.title || `Layer ${layer.id}`)}</span>
+                <small>${escapeHtml(layer.type || layer.serviceType || `Layer ${layer.id}`)}</small>
+              </button>
+            `,
+          )
+          .join("")}
+      </div>
+    `
+    : "";
   const tableChooser = tableChoices.length
     ? `
       <div class="layer-card__table-picker" aria-label="Available tables">
@@ -131,6 +157,7 @@ export function createLayerCard(meta, actions = {}, options = {}) {
     </div>
     <div class="layer-card__menu hidden">
       ${unsupportedBlock}
+      ${layerChooser}
       ${tableChooser}
       ${categoryLine}
       ${detailGrid}
@@ -207,6 +234,9 @@ export function createLayerCard(meta, actions = {}, options = {}) {
   });
 
   div.querySelectorAll(".layer-card__table-option").forEach((button) => {
+    if (button.classList.contains("layer-card__layer-option") || button.classList.contains("layer-card__load-all-layers")) {
+      return;
+    }
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       const table = tableChoices.find(
@@ -216,6 +246,23 @@ export function createLayerCard(meta, actions = {}, options = {}) {
         options.onTableOpen?.(meta, table);
       }
     });
+  });
+
+  div.querySelectorAll(".layer-card__layer-option").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const layer = layerChoices.find(
+        (choice) => String(choice.id) === button.dataset.layerId,
+      );
+      if (layer) {
+        options.onLayerOpen?.(meta, layer);
+      }
+    });
+  });
+
+  div.querySelector(".layer-card__load-all-layers")?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    options.onLoadAllLayers?.(meta, layerChoices);
   });
 
   div.querySelectorAll(".layer-card__secondary-actions a").forEach((link) => {

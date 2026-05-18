@@ -1,7 +1,7 @@
 {
   "name": "Seattle GeoData Explorer",
   "short_name": "GeoData Explorer",
-  "description": "A modern civic GIS web mapping application for exploring Seattle public geospatial data.",
+  "description": "Search Seattle public GIS data, load live ArcGIS layers, and inspect features in a map-first workspace.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#050b16",

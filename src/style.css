@@ -1527,7 +1527,8 @@ select:focus-visible,
   background: rgba(71, 181, 255, 0.15);
 }
 
-.action-button.disabled {
+.action-button.disabled,
+.action-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

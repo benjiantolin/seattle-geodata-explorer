@@ -1,7 +1,10 @@
 import "./style.css";
 
 import { MapController } from "./map/mapController.js";
-import { createLayerFromMetadata } from "./map/layerFactory.js";
+import {
+  createLayerFromLayerChoice,
+  createLayerFromMetadata,
+} from "./map/layerFactory.js";
 import { hideInspector, showInspector } from "./map/inspector.js";
 
 import Expand from "@arcgis/core/widgets/Expand";
@@ -102,6 +105,7 @@ let filterCategory = "";
 let filterOwner = "";
 let filterTag = "";
 const catalogTableChoices = new Map();
+const catalogLayerChoices = new Map();
 let tableState = {
   layerMeta: null,
   layer: null,
@@ -151,18 +155,18 @@ header.innerHTML = `
       </div>
     </div>
     <div class="sidebar__toolbar" aria-label="Sidebar actions">
-      <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="Project Info"></button>
+      <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="About this project"></button>
       <a href="https://github.com/benjiantolin/seattle-geodata-explorer" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub Repository" target="_blank" rel="noopener"></a>
       <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener"></a>
       <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share"></button>
       <button type="button" class="sidebar__toolbar-button sidebar__collapse-button" id="sidebarToggleButton" title="Collapse sidebar" aria-expanded="true"></button>
     </div>
   </div>
-  <div class="sidebar__brand-subtitle">Seattle public GIS data, mapped and inspected from one focused catalog.</div>
+  <div class="sidebar__brand-subtitle">Search Seattle public GIS data, load live layers, and inspect attributes from one map-first workspace.</div>
 `;
 
 const toolbarButtons = header.querySelectorAll(".sidebar__toolbar-button");
-toolbarButtons[0]?.setAttribute("aria-label", "Project information");
+toolbarButtons[0]?.setAttribute("aria-label", "About this project");
 toolbarButtons[1]?.setAttribute("aria-label", "GitHub repository");
 toolbarButtons[2]?.setAttribute("aria-label", "LinkedIn profile");
 toolbarButtons[3]?.setAttribute("aria-label", "Share app");
@@ -370,7 +374,7 @@ tablePanel.innerHTML = `
   <div class="sidebar__table-header">
     <div class="sidebar__table-heading">
       <div class="sidebar__table-title">Layer Table</div>
-      <div class="sidebar__table-subtitle">Browse attributes in a native ArcGIS table view.</div>
+      <div class="sidebar__table-subtitle">Browse attributes in a dedicated table workspace.</div>
     </div>
     <div class="sidebar__table-actions">
       <button type="button" class="sidebar__table-icon-button sidebar__table-restore" title="Maximize table" aria-label="Maximize table"></button>
@@ -379,7 +383,7 @@ tablePanel.innerHTML = `
   </div>
   <div class="sidebar__table-info">
     <div class="sidebar__table-layer">No table loaded</div>
-    <div class="sidebar__table-message">Select a loaded feature layer and tap Table.</div>
+    <div class="sidebar__table-message">Load a layer or table, then open its attributes here.</div>
   </div>
   <div class="sidebar__table-body"></div>
   <div class="sidebar__table-resize-handle" aria-hidden="true"></div>
@@ -591,36 +595,37 @@ function openProjectNotes() {
   notes.className = "project-notes";
   notes.innerHTML = `
     <section class="project-notes__section">
-      <p class="project-notes__lede">Seattle GeoData Explorer is a prototype for modern geospatial data interaction. It explores what becomes possible when an open data catalog becomes part of the mapping experience itself.</p>
+      <p class="project-notes__lede">Seattle GeoData Explorer is a map-first workspace for searching Seattle public GIS data, loading live layers, and inspecting features without leaving the map.</p>
     </section>
     <section class="project-notes__section">
       <h4>Overview</h4>
-      <p>The app brings civic open data discovery, dynamic layer loading, interactive mapping, and table exploration into one lightweight workspace for Seattle public GIS data.</p>
+      <p>The app brings catalog discovery, dynamic layer loading, feature inspection, and table-based exploration into one lightweight workspace for Seattle public GIS data.</p>
     </section>
     <section class="project-notes__section">
       <h4>Technical Approach</h4>
-      <p>Built with Vite and the ArcGIS Maps SDK for JavaScript, the application uses catalog-style metadata to help users identify datasets, load layers into the map, and inspect spatial and attribute information through a focused custom interface informed by ArcGIS Web Components and Calcite-style UI patterns.</p>
+      <p>Built with Vite and the ArcGIS Maps SDK for JavaScript, the application uses catalog-style metadata to help users identify datasets, load ArcGIS services into the map, and inspect spatial and attribute information through a focused custom interface.</p>
     </section>
     <section class="project-notes__section">
       <h4>Inspiration</h4>
-      <p>The project was shaped by modern web GIS patterns highlighted at the 2026 Esri Developer & Technology Summit, including web components, Calcite-style UI patterns, modular front-end architecture, and custom geospatial user experience design.</p>
+      <p>The project was shaped by ideas from the 2026 Esri Developer & Technology Summit, modern web GIS patterns, compact dashboard interfaces, mobile-friendly catalog workflows, and custom geospatial user experience design.</p>
     </section>
     <section class="project-notes__section">
       <h4>Rapid Prototyping</h4>
-      <p>GitHub Copilot, ChatGPT, and Codex supported the development workflow by accelerating iteration, helping test interface ideas quickly, and making rapid prototyping more fluid. The goal was to pair AI-assisted speed with GIS development judgment, not to replace it.</p>
+      <p>GitHub Copilot, ChatGPT, and Codex supported the development workflow by accelerating iteration, helping test interface ideas quickly, and making rapid prototyping more fluid. The goal was to pair AI-assisted speed with GIS development judgment and human review.</p>
     </section>
     <section class="project-notes__section">
       <h4>What You Can Explore</h4>
       <ul>
         <li>Browse Seattle public GIS datasets from a catalog-driven interface.</li>
         <li>Load selected datasets directly into an interactive web map.</li>
-        <li>Inspect spatial features and attribute information through a dynamic table experience.</li>
-        <li>Test a prototype for reimagining open data discovery as an interactive geospatial workspace.</li>
+        <li>Inspect spatial features and attributes through the feature inspector.</li>
+        <li>Explore layer and table attributes in a resizable desktop table panel or fullscreen table workspace.</li>
+        <li>Use the mobile catalog drawer and fullscreen table sheet on smaller screens.</li>
       </ul>
     </section>
     <section class="project-notes__section">
       <h4>Vision</h4>
-      <p>At its core, Seattle GeoData Explorer asks how civic GIS data could feel more immediate, visual, and interactive.</p>
+      <p>At its core, Seattle GeoData Explorer asks how civic GIS data could feel more immediate, visual, and useful during real exploration.</p>
     </section>
   `;
 
@@ -1012,24 +1017,22 @@ async function handleAddLayer(meta) {
   try {
     const result = await createLayerFromMetadata(meta);
 
-    if (result.tables?.length) {
+    if (result.layerChoices?.length) {
+      if (result.tables?.length) {
+        catalogTableChoices.set(getDatasetKey(meta), result.tables);
+      }
+      return handleLayerChoices(meta, result.layerChoices, result.message);
+    }
+
+    if (!result.layer && result.tables?.length) {
       return handleTableOnlyService(meta, result.tables);
     }
 
-    const layer = result.layer;
-    layer.id = getLayerId(meta);
-    layer.visible = true;
-    map.addLayer(layer);
+    if (result.tables?.length) {
+      catalogTableChoices.set(getDatasetKey(meta), result.tables);
+    }
 
-    activeLayers.push({
-      meta,
-      layer,
-      visible: true,
-    });
-
-    switchTab("active");
-    renderUI();
-    map.zoomToMetadataOrLayer(meta, layer);
+    addResolvedLayer(meta, result.layer, result);
   } catch (error) {
     showInspector(
       {
@@ -1040,6 +1043,128 @@ async function handleAddLayer(meta) {
       "Layer Load Error",
     );
   }
+}
+
+function expandCatalogCard(meta) {
+  requestAnimationFrame(() => {
+    const card = document.querySelector(
+      `[data-dataset-key="${CSS.escape(getDatasetKey(meta))}"]`,
+    );
+    const menu = card?.querySelector(".layer-card__menu");
+    const toggle = card?.querySelector(".layer-card__menu-toggle");
+    menu?.classList.remove("hidden");
+    toggle?.setAttribute("aria-expanded", "true");
+    toggle?.setAttribute("aria-label", "Hide dataset details");
+    if (toggle) {
+      toggle.title = "Hide dataset details";
+      setIcon(toggle, faAngleUp);
+    }
+    card?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+
+function handleLayerChoices(meta, layerChoices, message = "") {
+  hideInspector();
+  catalogLayerChoices.set(getDatasetKey(meta), layerChoices);
+  renderCatalog();
+  expandCatalogCard(meta);
+
+  if (message) {
+    showInspector(
+      {
+        Dataset: meta.title || "Untitled dataset",
+        Status: "Choose a layer",
+        Details: message,
+      },
+      "Layer Choices Available",
+    );
+  }
+}
+
+async function openLayerChoice(meta, layerInfo) {
+  const selectedMeta = {
+    ...meta,
+    title: layerInfo.title || `${meta.title || "Dataset"} - ${layerInfo.name}`,
+    url: layerInfo.url,
+    type: layerInfo.type || meta.type,
+    parentTitle: meta.title,
+    parentUrl: meta.url,
+    layerChoiceKey: getLayerChoiceKey(meta, layerInfo),
+    supportsTable: layerInfo.supportsTable,
+  };
+
+  if (isLayerActive(selectedMeta)) {
+    scrollToActiveLayer(getLayerId(selectedMeta));
+    return;
+  }
+
+  try {
+    const result = await createLayerFromLayerChoice(meta, layerInfo);
+    addResolvedLayer(selectedMeta, result.layer, {
+      ...result,
+      supportsTable: layerInfo.supportsTable ?? result.supportsTable,
+    });
+  } catch (error) {
+    showInspector(
+      {
+        Layer: selectedMeta.title,
+        Status: "Unable to load",
+        Reason: error.message,
+      },
+      "Layer Load Error",
+    );
+  }
+}
+
+async function loadAllLayerChoices(meta, layerChoices = []) {
+  for (const layerInfo of layerChoices) {
+    await openLayerChoice(meta, layerInfo);
+  }
+}
+
+function addResolvedLayer(meta, layer, options = {}) {
+  if (!layer) {
+    if (options.tables?.length) {
+      return handleTableOnlyService(meta, options.tables);
+    }
+    throw new Error("No displayable layer was returned for this dataset.");
+  }
+
+  if (isLayerActive(meta)) {
+    scrollToActiveLayer(getLayerId(meta));
+    return null;
+  }
+
+  layer.id = getLayerId(meta);
+  layer.visible = true;
+  map.addLayer(layer);
+
+  activeLayers.push({
+    meta,
+    layer,
+    visible: true,
+    supportsTable:
+      options.supportsTable ??
+      meta.supportsTable ??
+      layer.type === "feature",
+  });
+
+  switchTab("active");
+  renderUI();
+  map.zoomToMetadataOrLayer(meta, layer);
+
+  if (options.warning) {
+    showInspector(
+      {
+        Layer: meta.title || "Layer",
+        Status: "Loaded with note",
+        Note: options.warning,
+      },
+      "Layer Loaded",
+    );
+  }
+
+  return layer;
 }
 
 function showUnsupportedItem(meta, reason = getUnsupportedReason(meta)) {
@@ -1082,22 +1207,7 @@ function handleTableOnlyService(meta, tables) {
 
   catalogTableChoices.set(getDatasetKey(meta), tables);
   renderCatalog();
-
-  requestAnimationFrame(() => {
-    const card = document.querySelector(
-      `[data-dataset-key="${CSS.escape(getDatasetKey(meta))}"]`,
-    );
-    const menu = card?.querySelector(".layer-card__menu");
-    const toggle = card?.querySelector(".layer-card__menu-toggle");
-    menu?.classList.remove("hidden");
-    toggle?.setAttribute("aria-expanded", "true");
-    toggle?.setAttribute("aria-label", "Hide dataset details");
-    if (toggle) {
-      toggle.title = "Hide dataset details";
-      setIcon(toggle, faAngleUp);
-    }
-    card?.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
+  expandCatalogCard(meta);
 }
 
 function openTableService(meta, tableInfo) {
@@ -1197,7 +1307,15 @@ function handleSearch(query) {
 }
 
 function getDatasetKey(meta = {}) {
-  return meta.id || meta.url || meta.title || "";
+  return meta.layerChoiceKey || meta.id || meta.url || meta.title || "";
+}
+
+function getLayerChoiceKey(meta = {}, layerInfo = {}) {
+  return [
+    meta.id || meta.url || meta.title || "dataset",
+    layerInfo.parentUrl || meta.url || "",
+    layerInfo.sublayerId ?? layerInfo.id ?? layerInfo.url ?? layerInfo.name ?? "layer",
+  ].join("::");
 }
 
 function isLayerActive(meta) {
@@ -1226,16 +1344,20 @@ function renderCatalogItem(meta) {
   const active = isLayerActive(meta);
   const datasetKey = getDatasetKey(meta);
   const tableChoices = catalogTableChoices.get(datasetKey) || [];
+  const layerChoices = catalogLayerChoices.get(datasetKey) || [];
   const loadable = isWebLoadableCatalogItem(meta);
   const unsupportedReason = loadable ? "" : getUnsupportedReason(meta);
+  const hasChoices = tableChoices.length > 0 || layerChoices.length > 0;
   return createLayerCard(
     meta,
     {
       primary: active ? handleRemoveLayer : handleAddLayer,
     },
     {
-      primaryText: tableChoices.length
-        ? "Tables"
+      primaryText: layerChoices.length
+        ? "Layers"
+        : tableChoices.length
+          ? "Tables"
         : active
           ? "Remove"
           : loadable
@@ -1244,8 +1366,11 @@ function renderCatalogItem(meta) {
       active,
       variant: "portal",
       datasetKey,
+      layerChoices,
       tableChoices,
-      primaryOpensMenu: tableChoices.length > 0,
+      primaryOpensMenu: hasChoices,
+      onLayerOpen: openLayerChoice,
+      onLoadAllLayers: loadAllLayerChoices,
       onTableOpen: openTableService,
       disabled: !loadable && !active,
       disabledReason: unsupportedReason,
@@ -1268,6 +1393,7 @@ function renderActiveItem(item) {
     typeof item.layer.opacity === "number" ? item.layer.opacity : 1;
   const owner = escapeHtml(getDisplayOwner(item.meta) || item.meta.source || "Seattle GIS");
   const type = escapeHtml(getTypeLabel(item.meta.type));
+  const supportsTable = item.supportsTable !== false;
 
   card.innerHTML = `
     <div class="active-layer-card__header">
@@ -1282,7 +1408,7 @@ function renderActiveItem(item) {
     </div>
     <div class="active-layer-card__menu hidden">
       <button type="button" class="inspector__button inspector__button--secondary action-button">Zoom to</button>
-      <button type="button" class="inspector__button inspector__button--secondary action-button">View table</button>
+      <button type="button" class="inspector__button inspector__button--secondary action-button table-action" ${supportsTable ? "" : "disabled"}>${supportsTable ? "View table" : "No table"}</button>
       <a class="inspector__button inspector__button--secondary action-button" target="_blank" rel="noreferrer">Source</a>
       <button type="button" class="inspector__button inspector__button--secondary action-button">Remove</button>
       <div class="active-layer-card__setting">
@@ -1332,6 +1458,9 @@ function renderActiveItem(item) {
 
   tableButton.addEventListener("click", (event) => {
     event.stopPropagation();
+    if (!supportsTable) {
+      return;
+    }
     prepareTable(item);
   });
 
@@ -1491,7 +1620,7 @@ function renderTablePanel() {
 
   if (!tableState.layerMeta) {
     tableInfo.textContent = "No table loaded";
-    tableMessage.textContent = "Select a loaded feature layer and tap Table.";
+    tableMessage.textContent = "Load a layer or table, then open its attributes here.";
     if (featureTable) {
       featureTable.layer = null;
     }
@@ -1501,7 +1630,7 @@ function renderTablePanel() {
   tableInfo.textContent = tableState.layerMeta.title;
   tableMessage.textContent = isMobile
     ? "Swipe horizontally to browse fields. Scroll vertically to browse records."
-    : "Browsing attributes in a native ArcGIS FeatureTable.";
+    : "Use the table workspace to browse fields, records, and selected features.";
   if (featureTable) {
     featureTable.layer = tableState.layer;
   }

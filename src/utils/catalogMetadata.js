@@ -100,11 +100,16 @@ export function isWebLoadableCatalogItem(meta = {}) {
   const type = getTypeValue(meta).toLowerCase();
   const url = (meta.url || "").toString();
 
+  if (/map package/i.test(type)) {
+    return false;
+  }
+
   return (
     type.includes("feature") ||
     type.includes("map service") ||
     type.includes("vector tile") ||
     type.includes("image service") ||
+    (/group layer/i.test(type) && Boolean(meta.id || url)) ||
     /\/(FeatureServer|MapServer|VectorTileServer|ImageServer)(\/\d+)?\/?$/i.test(url)
   );
 }
@@ -121,7 +126,7 @@ export function getUnsupportedReason(meta = {}) {
   }
 
   if (/group layer/i.test(type)) {
-    return "Group layers remain searchable here, but this prototype needs a concrete web service layer before it can add them to the map.";
+    return "Group layers need a Portal item ID or resolvable group layer definition so the configured group can be added to the map.";
   }
 
   if (/map package/i.test(type)) {
