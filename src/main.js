@@ -212,8 +212,10 @@ header.innerHTML = `
   <div class="sidebar__header-meta">
     <div class="sidebar__attribution">Built with &#129302; by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a></div>
     <nav class="sidebar__project-links" aria-label="Project links">
+      <button type="button" class="sidebar__mobile-action" id="projectInfoButtonMobile" aria-label="About this project" title="About this project"></button>
       <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noopener" aria-label="GitHub repository" title="GitHub repository">${renderIcon(faGithub)}</a>
       <a href="https://www.linkedin.com/in/benjaminantolin/" target="_blank" rel="noopener" aria-label="LinkedIn profile" title="LinkedIn profile">${renderIcon(faLinkedin)}</a>
+      <button type="button" class="sidebar__mobile-action" id="shareButtonMobile" aria-label="Share app" title="Share"></button>
     </nav>
   </div>
 `;
@@ -227,6 +229,8 @@ setIcon(toolbarButtons[1], faShareFromSquare);
 setIcon(toolbarButtons[2], faRightFromBracket, {
   classes: ["icon--flip-horizontal"],
 });
+setIcon(header.querySelector("#projectInfoButtonMobile"), faCircleInfo);
+setIcon(header.querySelector("#shareButtonMobile"), faShareFromSquare);
 
 const controls = document.createElement("div");
 controls.className = "sidebar__controls";
@@ -918,6 +922,9 @@ const projectInfoButton = header.querySelector("#projectInfoButton");
 projectInfoButton.addEventListener("click", () => {
   openProjectNotes();
 });
+header.querySelector("#projectInfoButtonMobile")?.addEventListener("click", () => {
+  openProjectNotes();
+});
 
 function openProjectNotes() {
   const notes = document.createElement("div");
@@ -973,14 +980,14 @@ document.addEventListener("click", (event) => {
   if (
     inspector?.style.display === "block" &&
     !event.target.closest("#inspector") &&
-    !event.target.closest("#projectInfoButton")
+    !event.target.closest("#projectInfoButton") &&
+    !event.target.closest("#projectInfoButtonMobile")
   ) {
     hideInspector();
   }
 });
 
-const shareButton = header.querySelector("#shareButton");
-shareButton.addEventListener("click", async () => {
+async function shareAppLink() {
   const url = window.location.href;
   try {
     if (navigator.clipboard) {
@@ -993,7 +1000,11 @@ shareButton.addEventListener("click", async () => {
   }
 
   showToast(`Copy this app URL: ${url}`, "info");
-});
+}
+
+const shareButton = header.querySelector("#shareButton");
+shareButton.addEventListener("click", shareAppLink);
+header.querySelector("#shareButtonMobile")?.addEventListener("click", shareAppLink);
 
 map.view.on("click", async (event) => {
   const hit = await map.view.hitTest(event);
@@ -1151,8 +1162,11 @@ function setSidebarCollapsed(collapsed, { persist = true } = {}) {
   );
   sidebarReopenButton.title = isMobile ? "Open catalog drawer" : "Expand sidebar";
 
-  const toggleButton = header.querySelector("#sidebarToggleButton");
-  if (toggleButton) {
+  const toggleButtons = [
+    header.querySelector("#sidebarToggleButton"),
+  ].filter(Boolean);
+
+  toggleButtons.forEach((toggleButton) => {
     const label = isMobile
       ? collapsed
         ? "Open catalog drawer"
@@ -1171,7 +1185,7 @@ function setSidebarCollapsed(collapsed, { persist = true } = {}) {
         classes: collapsed ? [] : ["icon--flip-horizontal"],
       });
     }
-  }
+  });
 
   if (persist) {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
