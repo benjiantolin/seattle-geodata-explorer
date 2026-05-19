@@ -3320,19 +3320,60 @@ select:focus-visible,
   }
 
   .layer-card {
-    padding: 13px 12px 12px 15px;
+    gap: 6px;
+    padding: 10px 10px 10px 13px;
   }
 
   .layer-card__buttons {
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 
   .layer-card__row {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: start;
+    gap: 6px;
   }
 
   .layer-card__buttons {
-    grid-column: 1 / -1;
+    grid-column: auto;
+  }
+
+  .layer-card__title {
+    margin-bottom: 2px;
+    font-size: 0.88rem;
+    line-height: 1.22;
+  }
+
+  .layer-card__meta {
+    font-size: 0.68rem;
+    line-height: 1.2;
+  }
+
+  .layer-card__summary {
+    margin-top: 2px;
+    font-size: 0.73rem;
+    line-height: 1.32;
+    -webkit-line-clamp: 2;
+  }
+
+  .layer-card__badge {
+    padding: 1px 5px;
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+  }
+
+  .layer-card__button {
+    min-width: 44px;
+    min-height: 28px;
+    padding: 5px 8px;
+    border-radius: 7px;
+    font-size: 0.72rem;
+  }
+
+  .layer-card__menu-toggle {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
   }
 
   .active-layer-card__action-grid {
