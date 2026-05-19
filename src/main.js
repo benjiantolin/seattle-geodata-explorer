@@ -87,7 +87,7 @@ map.view.when(() => {
   }
 
   const existingAttribution = map.view.attribution.text;
-  map.view.attribution.text = `${existingAttribution} | Built with 🤖 by Benji`;
+  map.view.attribution.text = `${existingAttribution} | Built with \u{1F916} by Benji`;
 });
 
 const catalogData = getAllCatalog();
@@ -110,6 +110,8 @@ const SCALE_STOPS = [
   { label: "1:500", scale: 500 },
 ];
 const SCALE_RANGE_MAX = SCALE_STOPS.length + 1;
+let currentMapScale = 0;
+let currentScaleUpdateFrame = 0;
 let activeLayers = [];
 let activeTables = [];
 let searchQuery = "";
@@ -131,6 +133,36 @@ let tableState = {
   rows: [],
 };
 
+map.view.when(() => {
+  currentMapScale = usefulScale(map.view.scale);
+  updateCurrentScaleIndicators();
+  map.view.watch("scale", (scale) => {
+    currentMapScale = usefulScale(scale);
+    scheduleCurrentScaleIndicatorUpdate();
+  });
+});
+
+const toastRegion = document.createElement("div");
+toastRegion.className = "toast-region";
+toastRegion.setAttribute("aria-live", "polite");
+toastRegion.setAttribute("aria-atomic", "true");
+app.appendChild(toastRegion);
+
+function showToast(message, variant = "info") {
+  const toast = document.createElement("div");
+  toast.className = `toast toast--${variant}`;
+  toast.setAttribute("role", variant === "error" ? "alert" : "status");
+  toast.textContent = message;
+  toastRegion.appendChild(toast);
+
+  window.setTimeout(() => {
+    toast.classList.add("toast--leaving");
+    toast.addEventListener("transitionend", () => toast.remove(), {
+      once: true,
+    });
+  }, 3600);
+}
+
 const ownerOptions = buildFilterOptions(
   catalogData,
   getOwnerFilterValue,
@@ -149,6 +181,7 @@ const typeOptions = buildFilterOptions(
 const tags = buildFilterOptions(catalogData, (item) => getTags(item)).map(
   (option) => option.label,
 );
+const TAG_OPTION_LIMIT = 10;
 
 function compactFilterLabel(label, maxLength = 64) {
   const cleanLabel = (label || "").toString().replace(/\s+/g, " ").trim();
@@ -171,32 +204,213 @@ header.innerHTML = `
     </div>
     <div class="sidebar__toolbar" aria-label="Sidebar actions">
       <button type="button" class="sidebar__toolbar-button" id="projectInfoButton" title="About this project"></button>
-      <a href="https://github.com/benjiantolin/seattle-geodata-explorer" class="sidebar__toolbar-button sidebar__toolbar-link" title="GitHub Repository" target="_blank" rel="noopener"></a>
-      <a href="https://www.linkedin.com/in/benjaminantolin/" class="sidebar__toolbar-button sidebar__toolbar-link" title="LinkedIn" target="_blank" rel="noopener"></a>
       <button type="button" class="sidebar__toolbar-button" id="shareButton" title="Share"></button>
       <button type="button" class="sidebar__toolbar-button sidebar__collapse-button" id="sidebarToggleButton" title="Collapse sidebar" aria-expanded="true"></button>
     </div>
   </div>
   <div class="sidebar__brand-subtitle">Search Seattle public GIS data, load live layers, and inspect attributes from one map-first workspace.</div>
-  <div class="sidebar__attribution">Built with 🤖 by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a></div>
+  <div class="sidebar__header-meta">
+    <div class="sidebar__attribution">Built with &#129302; by <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noreferrer">Benji</a></div>
+    <nav class="sidebar__project-links" aria-label="Project links">
+      <a href="https://github.com/benjiantolin/seattle-geodata-explorer" target="_blank" rel="noopener" aria-label="GitHub repository" title="GitHub repository">${renderIcon(faGithub)}</a>
+      <a href="https://www.linkedin.com/in/benjaminantolin/" target="_blank" rel="noopener" aria-label="LinkedIn profile" title="LinkedIn profile">${renderIcon(faLinkedin)}</a>
+    </nav>
+  </div>
 `;
 
 const toolbarButtons = header.querySelectorAll(".sidebar__toolbar-button");
 toolbarButtons[0]?.setAttribute("aria-label", "About this project");
-toolbarButtons[1]?.setAttribute("aria-label", "GitHub repository");
-toolbarButtons[2]?.setAttribute("aria-label", "LinkedIn profile");
-toolbarButtons[3]?.setAttribute("aria-label", "Share app");
-toolbarButtons[4]?.setAttribute("aria-label", "Collapse sidebar");
+toolbarButtons[1]?.setAttribute("aria-label", "Share app");
+toolbarButtons[2]?.setAttribute("aria-label", "Collapse sidebar");
 setIcon(toolbarButtons[0], faCircleInfo);
-setIcon(toolbarButtons[1], faGithub);
-setIcon(toolbarButtons[2], faLinkedin);
-setIcon(toolbarButtons[3], faShareFromSquare);
-setIcon(toolbarButtons[4], faRightFromBracket, {
+setIcon(toolbarButtons[1], faShareFromSquare);
+setIcon(toolbarButtons[2], faRightFromBracket, {
   classes: ["icon--flip-horizontal"],
 });
 
 const controls = document.createElement("div");
 controls.className = "sidebar__controls";
+const customDropdowns = new Set();
+
+function createSidebarDropdown({
+  className = "",
+  ariaLabel,
+  options = [],
+  value = "",
+  onChange,
+}) {
+  const root = document.createElement("div");
+  root.className = `sidebar__custom-select ${className}`.trim();
+  const idBase = `dropdown-${Math.random().toString(36).slice(2)}`;
+  let currentValue = value;
+  let activeIndex = -1;
+
+  const trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "sidebar__custom-select-trigger";
+  trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-expanded", "false");
+  trigger.setAttribute("aria-controls", `${idBase}-listbox`);
+  trigger.setAttribute("aria-label", ariaLabel);
+
+  const label = document.createElement("span");
+  label.className = "sidebar__custom-select-label";
+  trigger.appendChild(label);
+
+  const menu = document.createElement("div");
+  menu.className = "sidebar__custom-select-menu hidden";
+  menu.id = `${idBase}-listbox`;
+  menu.setAttribute("role", "listbox");
+  menu.setAttribute("aria-label", ariaLabel);
+
+  root.appendChild(trigger);
+  root.appendChild(menu);
+
+  const selectedOption = () =>
+    options.find((option) => option.value === currentValue) || options[0];
+
+  const renderLabel = () => {
+    const option = selectedOption();
+    label.textContent = option?.label || "";
+    trigger.title = option?.title || option?.label || ariaLabel;
+  };
+
+  const renderMenu = () => {
+    menu.innerHTML = "";
+    options.forEach((option, index) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "sidebar__custom-select-option";
+      item.id = `${idBase}-option-${index}`;
+      item.setAttribute("role", "option");
+      item.setAttribute("aria-selected", String(option.value === currentValue));
+      item.textContent = option.label;
+      item.title = option.title || option.label;
+      item.addEventListener("mousedown", (event) => event.preventDefault());
+      item.addEventListener("click", () => {
+        setValue(option.value, { notify: true });
+        closeDropdown();
+        trigger.focus();
+      });
+      menu.appendChild(item);
+    });
+  };
+
+  const setActiveIndex = (index) => {
+    const optionCount = options.length;
+    if (!optionCount) {
+      activeIndex = -1;
+      trigger.removeAttribute("aria-activedescendant");
+      return;
+    }
+
+    activeIndex = Math.max(0, Math.min(index, optionCount - 1));
+    trigger.setAttribute(
+      "aria-activedescendant",
+      `${idBase}-option-${activeIndex}`,
+    );
+    menu
+      .querySelectorAll(".sidebar__custom-select-option")
+      .forEach((option, optionIndex) => {
+        option.classList.toggle("is-active", optionIndex === activeIndex);
+      });
+    menu.children[activeIndex]?.scrollIntoView({ block: "nearest" });
+  };
+
+  const openDropdown = () => {
+    hideAllCustomDropdowns(root);
+    hideTagOptions();
+    renderMenu();
+    menu.classList.remove("hidden");
+    trigger.setAttribute("aria-expanded", "true");
+    const selectedIndex = options.findIndex(
+      (option) => option.value === currentValue,
+    );
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  };
+
+  const closeDropdown = () => {
+    menu.classList.add("hidden");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.removeAttribute("aria-activedescendant");
+    activeIndex = -1;
+  };
+
+  const toggleDropdown = () => {
+    if (menu.classList.contains("hidden")) {
+      openDropdown();
+    } else {
+      closeDropdown();
+    }
+  };
+
+  function setValue(nextValue, { notify = false } = {}) {
+    currentValue = nextValue;
+    root.dataset.value = currentValue;
+    renderLabel();
+    if (!menu.classList.contains("hidden")) {
+      renderMenu();
+      const selectedIndex = options.findIndex(
+        (option) => option.value === currentValue,
+      );
+      setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    }
+    if (notify) {
+      onChange?.(currentValue);
+    }
+  }
+
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleDropdown();
+  });
+
+  trigger.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeDropdown();
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (menu.classList.contains("hidden")) {
+        openDropdown();
+      } else if (activeIndex >= 0) {
+        setValue(options[activeIndex].value, { notify: true });
+        closeDropdown();
+      }
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (menu.classList.contains("hidden")) {
+        openDropdown();
+        return;
+      }
+      setActiveIndex(activeIndex + (event.key === "ArrowDown" ? 1 : -1));
+    }
+  });
+
+  root.closeDropdown = closeDropdown;
+  root.setValue = (nextValue) => setValue(nextValue);
+  Object.defineProperty(root, "value", {
+    get: () => currentValue,
+    set: (nextValue) => setValue(nextValue),
+  });
+
+  setValue(value);
+  customDropdowns.add(root);
+  return root;
+}
+
+function hideAllCustomDropdowns(except = null) {
+  customDropdowns.forEach((dropdown) => {
+    if (dropdown !== except) {
+      dropdown.closeDropdown?.();
+    }
+  });
+}
 
 const searchWrapper = document.createElement("div");
 searchWrapper.className = "sidebar__search-wrapper";
@@ -207,20 +421,23 @@ controls.appendChild(searchWrapper);
 const sortRow = document.createElement("div");
 sortRow.className = "sidebar__sort-row";
 
-const sortSelect = document.createElement("select");
-sortSelect.className = "sidebar__sort";
-sortSelect.innerHTML = `
-  <option value="default">Sort by category + newest</option>
-  <option value="title">Sort by title</option>
-  <option value="owner">Sort by owner</option>
-  <option value="type">Sort by type</option>
-  <option value="created">Sort by created date</option>
-  <option value="modified">Sort by modified date</option>
-  <option value="source">Sort by source</option>
-`;
-sortSelect.addEventListener("change", (event) => {
-  sortBy = event.target.value;
-  renderCatalog();
+const sortSelect = createSidebarDropdown({
+  className: "sidebar__sort",
+  ariaLabel: "Sort catalog",
+  value: sortBy,
+  options: [
+    { value: "default", label: "Sort by category + newest" },
+    { value: "title", label: "Sort by title" },
+    { value: "owner", label: "Sort by owner" },
+    { value: "type", label: "Sort by type" },
+    { value: "created", label: "Sort by created date" },
+    { value: "modified", label: "Sort by modified date" },
+    { value: "source", label: "Sort by source" },
+  ],
+  onChange: (nextValue) => {
+    sortBy = nextValue;
+    renderCatalog();
+  },
 });
 sortRow.appendChild(sortSelect);
 controls.appendChild(sortRow);
@@ -228,50 +445,59 @@ controls.appendChild(sortRow);
 const filterRow = document.createElement("div");
 filterRow.className = "sidebar__filters";
 
-const typeFilterSelect = document.createElement("select");
-typeFilterSelect.className = "sidebar__filter";
-typeFilterSelect.setAttribute("aria-label", "Filter by data type");
-typeFilterSelect.innerHTML = [
-  `<option value="">All types</option>`,
-  ...typeOptions.map(
-    (option) =>
-      `<option value="${escapeHtml(option.value)}" title="${escapeHtml(option.label)}">${escapeHtml(compactFilterLabel(option.label, 42))}</option>`,
-  ),
-].join("");
-typeFilterSelect.addEventListener("change", (event) => {
-  filterType = event.target.value;
-  renderCatalog();
+const typeFilterSelect = createSidebarDropdown({
+  className: "sidebar__filter",
+  ariaLabel: "Filter by data type",
+  value: filterType,
+  options: [
+    { value: "", label: "All types" },
+    ...typeOptions.map((option) => ({
+      value: option.value,
+      label: compactFilterLabel(option.label, 42),
+      title: option.label,
+    })),
+  ],
+  onChange: (nextValue) => {
+    filterType = nextValue;
+    renderCatalog();
+  },
 });
 
-const categoryFilterSelect = document.createElement("select");
-categoryFilterSelect.className = "sidebar__filter";
-categoryFilterSelect.setAttribute("aria-label", "Filter by category");
-categoryFilterSelect.innerHTML = [
-  `<option value="">All categories</option>`,
-  ...categoryOptions.map(
-    (option) =>
-      `<option value="${escapeHtml(option.value)}" title="${escapeHtml(option.label)}">${escapeHtml(compactFilterLabel(option.label, 54))}</option>`,
-  ),
-].join("");
-categoryFilterSelect.addEventListener("change", (event) => {
-  filterCategory = event.target.value;
-  renderCatalog();
+const categoryFilterSelect = createSidebarDropdown({
+  className: "sidebar__filter",
+  ariaLabel: "Filter by category",
+  value: filterCategory,
+  options: [
+    { value: "", label: "All categories" },
+    ...categoryOptions.map((option) => ({
+      value: option.value,
+      label: compactFilterLabel(option.label, 54),
+      title: option.label,
+    })),
+  ],
+  onChange: (nextValue) => {
+    filterCategory = nextValue;
+    renderCatalog();
+  },
 });
 
 
-const ownerFilterSelect = document.createElement("select");
-ownerFilterSelect.className = "sidebar__filter";
-ownerFilterSelect.setAttribute("aria-label", "Filter by data owner");
-ownerFilterSelect.innerHTML = [
-  `<option value="">All data owners</option>`,
-  ...ownerOptions.map(
-    (option) =>
-      `<option value="${escapeHtml(option.value)}" title="${escapeHtml(option.label)}">${escapeHtml(compactFilterLabel(option.label, 52))}</option>`,
-  ),
-].join("");
-ownerFilterSelect.addEventListener("change", (event) => {
-  filterOwner = event.target.value;
-  renderCatalog();
+const ownerFilterSelect = createSidebarDropdown({
+  className: "sidebar__filter",
+  ariaLabel: "Filter by data owner",
+  value: filterOwner,
+  options: [
+    { value: "", label: "All data owners" },
+    ...ownerOptions.map((option) => ({
+      value: option.value,
+      label: compactFilterLabel(option.label, 52),
+      title: option.label,
+    })),
+  ],
+  onChange: (nextValue) => {
+    filterOwner = nextValue;
+    renderCatalog();
+  },
 });
 filterRow.appendChild(ownerFilterSelect);
 filterRow.appendChild(categoryFilterSelect);
@@ -282,24 +508,120 @@ tagFilterWrapper.className = "sidebar__tag-wrapper";
 
 const tagFilterInput = document.createElement("input");
 tagFilterInput.className = "sidebar__tag-search";
-tagFilterInput.setAttribute("list", "tagOptions");
 tagFilterInput.setAttribute("aria-label", "Filter by tag");
+tagFilterInput.setAttribute("aria-controls", "tagOptionsListbox");
+tagFilterInput.setAttribute("aria-expanded", "false");
+tagFilterInput.setAttribute("autocomplete", "off");
+tagFilterInput.setAttribute("role", "combobox");
 tagFilterInput.placeholder = "Search tags...";
+let activeTagOptionIndex = -1;
+
+const tagDropdown = document.createElement("div");
+tagDropdown.className = "sidebar__tag-listbox hidden";
+tagDropdown.id = "tagOptionsListbox";
+tagDropdown.setAttribute("role", "listbox");
+tagDropdown.setAttribute("aria-label", "Available tags");
+
+function filteredTagOptions() {
+  const query = tagFilterInput.value.trim().toLowerCase();
+  const options = query
+    ? tags.filter((tag) => tag.toLowerCase().includes(query))
+    : tags;
+  return options.slice(0, TAG_OPTION_LIMIT);
+}
+
+function hideTagOptions() {
+  tagDropdown.classList.add("hidden");
+  tagFilterInput.setAttribute("aria-expanded", "false");
+  tagFilterInput.removeAttribute("aria-activedescendant");
+  activeTagOptionIndex = -1;
+}
+
+function selectTagOption(tag) {
+  filterTag = tag;
+  tagFilterInput.value = tag;
+  hideTagOptions();
+  renderCatalog();
+}
+
+function renderTagOptions() {
+  const options = filteredTagOptions();
+  tagDropdown.innerHTML = "";
+
+  if (!options.length) {
+    const empty = document.createElement("div");
+    empty.className = "sidebar__tag-empty";
+    empty.textContent = "No matching tags";
+    tagDropdown.appendChild(empty);
+    return;
+  }
+
+  options.forEach((tag, index) => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "sidebar__tag-option";
+    option.id = `tag-option-${index}`;
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", String(index === activeTagOptionIndex));
+    option.textContent = tag;
+    option.addEventListener("mousedown", (event) => event.preventDefault());
+    option.addEventListener("click", () => selectTagOption(tag));
+    tagDropdown.appendChild(option);
+  });
+
+  if (activeTagOptionIndex >= 0) {
+    tagFilterInput.setAttribute(
+      "aria-activedescendant",
+      `tag-option-${activeTagOptionIndex}`,
+    );
+  } else {
+    tagFilterInput.removeAttribute("aria-activedescendant");
+  }
+}
+
+function showTagOptions() {
+  hideAllCustomDropdowns();
+  renderTagOptions();
+  tagDropdown.classList.remove("hidden");
+  tagFilterInput.setAttribute("aria-expanded", "true");
+}
+
 tagFilterInput.addEventListener("input", (event) => {
   filterTag = event.target.value;
+  activeTagOptionIndex = -1;
   renderCatalog();
+  showTagOptions();
 });
 
-const tagDatalist = document.createElement("datalist");
-tagDatalist.id = "tagOptions";
-tags.forEach((tag) => {
-  const option = document.createElement("option");
-  option.value = tag;
-  tagDatalist.appendChild(option);
+tagFilterInput.addEventListener("focus", showTagOptions);
+tagFilterInput.addEventListener("keydown", (event) => {
+  const options = filteredTagOptions();
+
+  if (event.key === "Escape") {
+    hideTagOptions();
+    return;
+  }
+
+  if (!options.length) {
+    return;
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    activeTagOptionIndex = Math.min(activeTagOptionIndex + 1, options.length - 1);
+    showTagOptions();
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    activeTagOptionIndex = Math.max(activeTagOptionIndex - 1, 0);
+    showTagOptions();
+  } else if (event.key === "Enter" && activeTagOptionIndex >= 0) {
+    event.preventDefault();
+    selectTagOption(options[activeTagOptionIndex]);
+  }
 });
 
 tagFilterWrapper.appendChild(tagFilterInput);
-tagFilterWrapper.appendChild(tagDatalist);
+tagFilterWrapper.appendChild(tagDropdown);
 filterRow.appendChild(tagFilterWrapper);
 
 controls.appendChild(filterRow);
@@ -344,7 +666,7 @@ layerSummary.appendChild(clearFiltersButton);
 
 const catalogHeader = document.createElement("div");
 catalogHeader.className = "sidebar__section-heading";
-catalogHeader.textContent = "Layer Catalog";
+catalogHeader.textContent = "Catalog results";
 
 const activeHeader = document.createElement("div");
 activeHeader.className = "sidebar__section-heading active-header";
@@ -623,7 +945,7 @@ function openProjectNotes() {
     </section>
     <section class="project-notes__section">
       <h4>Rapid Prototyping</h4>
-      <p>GitHub Copilot, ChatGPT, and Codex supported the development workflow by accelerating iteration, helping test interface ideas quickly, and making rapid prototyping more fluid. The goal was to pair AI-assisted speed with GIS development judgment and human review.</p>
+      <p>GitHub Copilot, ChatGPT, and Codex supported the development workflow by accelerating iteration, refining interface copy, testing implementation ideas, and generating the custom Seattle GeoData Explorer app icon package. Final project direction, review, and GIS workflow decisions were curated by the project author.</p>
     </section>
     <section class="project-notes__section">
       <h4>What You Can Explore</h4>
@@ -645,6 +967,13 @@ function openProjectNotes() {
 }
 
 document.addEventListener("click", (event) => {
+  if (!event.target.closest(".sidebar__tag-wrapper")) {
+    hideTagOptions();
+  }
+  if (!event.target.closest(".sidebar__custom-select")) {
+    hideAllCustomDropdowns();
+  }
+
   const inspector = document.getElementById("inspector");
   if (
     inspector?.style.display === "block" &&
@@ -658,12 +987,17 @@ document.addEventListener("click", (event) => {
 const shareButton = header.querySelector("#shareButton");
 shareButton.addEventListener("click", async () => {
   const url = window.location.href;
-  if (navigator.clipboard) {
-    await navigator.clipboard.writeText(url);
-    alert("Link copied to clipboard.");
-  } else {
-    prompt("Copy this app URL:", url);
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      showToast("App link copied to clipboard.", "success");
+      return;
+    }
+  } catch (error) {
+    console.warn("Unable to copy app link.", error);
   }
+
+  showToast(`Copy this app URL: ${url}`, "info");
 });
 
 map.view.on("click", async (event) => {
@@ -970,6 +1304,7 @@ function clearFilters() {
   categoryFilterSelect.value = "";
   ownerFilterSelect.value = "";
   tagFilterInput.value = "";
+  hideTagOptions();
   const searchInput = searchWrapper.querySelector(".search-bar__input");
   if (searchInput) {
     searchInput.value = "";
@@ -1246,7 +1581,7 @@ function handleTableOnlyService(meta, tables) {
   hideInspector();
 
   if (!tables.length) {
-    window.alert("No table data is available for this service.");
+    showToast("No table data is available for this service.", "warning");
     return;
   }
 
@@ -1478,6 +1813,124 @@ function scaleLabel(scale) {
   return index >= 0 ? SCALE_STOPS[index]?.label || "Any" : "Any";
 }
 
+function formatScale(scale) {
+  const useful = usefulScale(scale);
+  if (!useful) {
+    return "Any";
+  }
+
+  if (useful >= 1000000) {
+    return `1:${Number(useful / 1000000).toLocaleString(undefined, {
+      maximumFractionDigits: useful % 1000000 === 0 ? 0 : 1,
+    })}M`;
+  }
+
+  if (useful >= 1000) {
+    return `1:${Number(useful / 1000).toLocaleString(undefined, {
+      maximumFractionDigits: useful % 1000 === 0 ? 0 : 1,
+    })}k`;
+  }
+
+  return `1:${Math.round(useful).toLocaleString()}`;
+}
+
+function scalePosition(scale) {
+  const useful = usefulScale(scale);
+  if (!useful) {
+    return 0;
+  }
+
+  if (useful >= SCALE_STOPS[0].scale) {
+    return useful === SCALE_STOPS[0].scale ? 1 : 0;
+  }
+
+  const lastStop = SCALE_STOPS[SCALE_STOPS.length - 1];
+  if (useful <= lastStop.scale) {
+    return useful === lastStop.scale ? SCALE_STOPS.length : SCALE_RANGE_MAX;
+  }
+
+  for (let index = 0; index < SCALE_STOPS.length - 1; index += 1) {
+    const leftStop = SCALE_STOPS[index];
+    const rightStop = SCALE_STOPS[index + 1];
+
+    if (useful <= leftStop.scale && useful >= rightStop.scale) {
+      const leftLog = Math.log(leftStop.scale);
+      const rightLog = Math.log(rightStop.scale);
+      const scaleLog = Math.log(useful);
+      const progress = (leftLog - scaleLog) / (leftLog - rightLog);
+      return index + 1 + progress;
+    }
+  }
+
+  return closestScaleStopIndex(useful) + 1;
+}
+
+function scalePositionPercent(scale) {
+  return `${(scalePosition(scale) / SCALE_RANGE_MAX) * 100}%`;
+}
+
+function isScaleWithinVisibleRange(scale, minScale, maxScale) {
+  const useful = usefulScale(scale);
+  if (!useful) {
+    return true;
+  }
+
+  const zoomedOutLimit = usefulScale(minScale);
+  const zoomedInLimit = usefulScale(maxScale);
+  return (
+    (!zoomedOutLimit || useful <= zoomedOutLimit) &&
+    (!zoomedInLimit || useful >= zoomedInLimit)
+  );
+}
+
+function currentScaleStatus(scale, minScale, maxScale) {
+  const label = `Current ${formatScale(scale)}`;
+  return isScaleWithinVisibleRange(scale, minScale, maxScale)
+    ? label
+    : `${label} outside visible range`;
+}
+
+function updateCurrentScaleIndicators(root = document) {
+  const scaleRanges = root.querySelectorAll(".active-layer-card__scale-range");
+  scaleRanges.forEach((range) => {
+    const minScale = Number(range.dataset.minScale || 0);
+    const maxScale = Number(range.dataset.maxScale || 0);
+    const outsideRange = !isScaleWithinVisibleRange(
+      currentMapScale,
+      minScale,
+      maxScale,
+    );
+    const status = currentScaleStatus(currentMapScale, minScale, maxScale);
+    const label = range
+      .closest(".active-layer-card__scale-setting")
+      ?.querySelector(".active-layer-card__current-scale-label");
+
+    range.style.setProperty(
+      "--current-scale-position",
+      scalePositionPercent(currentMapScale),
+    );
+    range.classList.toggle("is-current-scale-outside", outsideRange);
+    range.setAttribute("aria-label", status);
+    range.title = status;
+
+    if (label) {
+      label.textContent = status;
+      label.classList.toggle("is-outside", outsideRange);
+    }
+  });
+}
+
+function scheduleCurrentScaleIndicatorUpdate() {
+  if (currentScaleUpdateFrame) {
+    return;
+  }
+
+  currentScaleUpdateFrame = window.requestAnimationFrame(() => {
+    currentScaleUpdateFrame = 0;
+    updateCurrentScaleIndicators();
+  });
+}
+
 function minScalePosition(scale) {
   const index = closestScaleStopIndex(scale);
   return index >= 0 ? index + 1 : 0;
@@ -1646,6 +2099,16 @@ function renderActiveItem(item) {
   const scaleRange = getLayerScaleRange(item.layer);
   const minScaleIndex = minScalePosition(scaleRange.minScale);
   const maxScaleIndex = maxScalePosition(scaleRange.maxScale);
+  const currentScaleOutside = !isScaleWithinVisibleRange(
+    currentMapScale,
+    scaleRange.minScale,
+    scaleRange.maxScale,
+  );
+  const currentScaleLabel = currentScaleStatus(
+    currentMapScale,
+    scaleRange.minScale,
+    scaleRange.maxScale,
+  );
   const owner = escapeHtml(getDisplayOwner(item.meta) || item.meta.source || "Seattle GIS");
   const type = escapeHtml(getTypeLabel(item.meta.type));
   const supportsTable = item.supportsTable !== false;
@@ -1662,41 +2125,59 @@ function renderActiveItem(item) {
       </div>
     </div>
     <div class="active-layer-card__menu hidden">
-      <button type="button" class="inspector__button inspector__button--secondary action-button">Zoom to</button>
-      <button type="button" class="inspector__button inspector__button--secondary action-button table-action" ${supportsTable ? "" : "disabled"}>${supportsTable ? "View table" : "No table"}</button>
-      <a class="inspector__button inspector__button--secondary action-button" target="_blank" rel="noreferrer">Source</a>
-      <button type="button" class="inspector__button inspector__button--secondary action-button">Remove</button>
-      <div class="active-layer-card__setting">
-        <label class="active-layer-card__setting-label">
-          <span>Opacity</span>
-          <span class="active-layer-card__setting-value">${Math.round(opacity * 100)}%</span>
-        </label>
-        <input type="range" min="0" max="1" step="0.05" value="${opacity}" class="active-layer-card__opacity" style="--opacity-fill: ${opacity * 100}%;" aria-label="Layer opacity" />
-      </div>
-      <div class="active-layer-card__setting active-layer-card__scale-setting">
-        <div class="active-layer-card__setting-label">
-          <span>Visible scale</span>
-          <span class="active-layer-card__scale-summary">${escapeHtml(scaleRangeSummary(scaleRange.minScale, scaleRange.maxScale))}</span>
+      <div class="active-layer-card__menu-section">
+        <div class="active-layer-card__section-title">Quick actions</div>
+        <div class="active-layer-card__action-grid">
+          <button type="button" class="inspector__button inspector__button--secondary action-button">Zoom to</button>
+          <button type="button" class="inspector__button inspector__button--secondary action-button table-action" ${supportsTable ? "" : "disabled"}>${supportsTable ? "View table" : "No table"}</button>
+          <a class="inspector__button inspector__button--secondary action-button" target="_blank" rel="noreferrer">Source</a>
         </div>
-        <div class="active-layer-card__scale-range" style="--scale-start: ${(minScaleIndex / SCALE_RANGE_MAX) * 100}%; --scale-end: ${(maxScaleIndex / SCALE_RANGE_MAX) * 100}%;">
-          <input type="range" min="0" max="${SCALE_RANGE_MAX}" step="1" value="${minScaleIndex}" class="active-layer-card__scale active-layer-card__min-scale" aria-label="Zoomed-out visibility limit" />
-          <input type="range" min="0" max="${SCALE_RANGE_MAX}" step="1" value="${maxScaleIndex}" class="active-layer-card__scale active-layer-card__max-scale" aria-label="Zoomed-in visibility limit" />
+      </div>
+      <div class="active-layer-card__menu-section">
+        <div class="active-layer-card__section-title">Display settings</div>
+        <div class="active-layer-card__setting">
+          <label class="active-layer-card__setting-label">
+            <span>Opacity</span>
+            <span class="active-layer-card__setting-value">${Math.round(opacity * 100)}%</span>
+          </label>
+          <input type="range" min="0" max="1" step="0.05" value="${opacity}" class="active-layer-card__opacity" style="--opacity-fill: ${opacity * 100}%;" aria-label="Layer opacity" />
         </div>
-        <div class="active-layer-card__scale-edge-labels" aria-hidden="true">
-          <span>Out: <output class="active-layer-card__min-scale-output">${escapeHtml(scalePositionLabel(minScaleIndex, "min"))}</output></span>
-          <span>In: <output class="active-layer-card__max-scale-output">${escapeHtml(scalePositionLabel(maxScaleIndex, "max"))}</output></span>
+      </div>
+      <div class="active-layer-card__menu-section active-layer-card__menu-section--advanced">
+        <div class="active-layer-card__section-title">Advanced display</div>
+        <div class="active-layer-card__setting active-layer-card__scale-setting">
+          <div class="active-layer-card__setting-label">
+            <span>Visible scale range</span>
+            <span class="active-layer-card__scale-summary">${escapeHtml(scaleRangeSummary(scaleRange.minScale, scaleRange.maxScale))}</span>
+          </div>
+          <div class="active-layer-card__scale-range ${currentScaleOutside ? "is-current-scale-outside" : ""}" data-min-scale="${scaleRange.minScale}" data-max-scale="${scaleRange.maxScale}" aria-label="${escapeHtml(currentScaleLabel)}" title="${escapeHtml(currentScaleLabel)}" style="--scale-start: ${(minScaleIndex / SCALE_RANGE_MAX) * 100}%; --scale-end: ${(maxScaleIndex / SCALE_RANGE_MAX) * 100}%; --current-scale-position: ${scalePositionPercent(currentMapScale)};">
+            <span class="active-layer-card__current-scale" aria-hidden="true"></span>
+            <input type="range" min="0" max="${SCALE_RANGE_MAX}" step="1" value="${minScaleIndex}" class="active-layer-card__scale active-layer-card__min-scale" aria-label="Visible from scale" />
+            <input type="range" min="0" max="${SCALE_RANGE_MAX}" step="1" value="${maxScaleIndex}" class="active-layer-card__scale active-layer-card__max-scale" aria-label="Visible until scale" />
+          </div>
+          <div class="active-layer-card__current-scale-label ${currentScaleOutside ? "is-outside" : ""}" aria-live="off">${escapeHtml(currentScaleLabel)}</div>
+          <div class="active-layer-card__scale-edge-labels" aria-hidden="true">
+            <span>Visible from <output class="active-layer-card__min-scale-output">${escapeHtml(scalePositionLabel(minScaleIndex, "min"))}</output></span>
+            <span>Visible until <output class="active-layer-card__max-scale-output">${escapeHtml(scalePositionLabel(maxScaleIndex, "max"))}</output></span>
+          </div>
+          <button type="button" class="active-layer-card__scale-reset">Reset to source</button>
         </div>
-        <button type="button" class="active-layer-card__scale-reset">Reset</button>
       </div>
-      <div class="active-layer-card__metadata">
-        <div><span>Type</span>${type}</div>
-        <div><span>Owner</span>${owner}</div>
+      <div class="active-layer-card__menu-section">
+        <div class="active-layer-card__section-title">Details</div>
+        <div class="active-layer-card__metadata">
+          <div><span>Type</span>${type}</div>
+          <div><span>Owner</span>${owner}</div>
+        </div>
+        <div class="active-layer-card__meta-block">
+          <div class="active-layer-card__menu-label">Description</div>
+          <div class="active-layer-card__menu-text">${description}</div>
+        </div>
+        ${tags.length ? `<div class="active-layer-card__tags">${tags.map((tag) => `<span class="layer-card__tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
       </div>
-      <div class="active-layer-card__meta-block">
-        <div class="active-layer-card__menu-label">Description</div>
-        <div class="active-layer-card__menu-text">${description}</div>
+      <div class="active-layer-card__menu-section active-layer-card__menu-section--danger">
+        <button type="button" class="inspector__button inspector__button--secondary action-button active-layer-card__danger-button">Remove layer</button>
       </div>
-      ${tags.length ? `<div class="active-layer-card__tags">${tags.map((tag) => `<span class="layer-card__tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
     </div>
   `;
 
@@ -1748,12 +2229,15 @@ function renderActiveItem(item) {
       "--scale-end",
       `${(nextMaxIndex / SCALE_RANGE_MAX) * 100}%`,
     );
+    scaleRangeTrack.dataset.minScale = String(nextRange.minScale);
+    scaleRangeTrack.dataset.maxScale = String(nextRange.maxScale);
     minScaleOutput.textContent = scalePositionLabel(nextMinIndex, "min");
     maxScaleOutput.textContent = scalePositionLabel(nextMaxIndex, "max");
     scaleSummary.textContent = scaleRangeSummary(
       nextRange.minScale,
       nextRange.maxScale,
     );
+    updateCurrentScaleIndicators(card);
   };
 
   visibilityButton.addEventListener("click", (event) => {
@@ -1837,6 +2321,8 @@ function renderActiveItem(item) {
   card.addEventListener("click", () => {
     menu.classList.add("hidden");
   });
+
+  updateCurrentScaleIndicators(card);
 
   return card;
 }

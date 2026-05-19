@@ -10,12 +10,13 @@ The app was built as a WAGISA Map Contest submission and as a practical prototyp
 
 ## What It Does
 
-- **Search the catalog** — Browse Seattle public GIS datasets with search, sorting, and filters for type, category, owner, and tags.
-- **Load live layers** — Add supported ArcGIS services directly to the map and manage visibility, opacity, tables, and source links.
-- **Inspect map features** — Click features to review attributes in a focused inspector panel.
-- **Explore attributes** — Open ArcGIS FeatureTable views in a floating desktop table panel, a fullscreen table workspace, or a mobile-friendly fullscreen table sheet.
-- **Use map tools** — Search places, switch basemaps, view the legend, return home, use scale/compass widgets, and keep exploring without leaving the map.
-- **Work across screen sizes** — Use a collapsible desktop sidebar or a mobile bottom drawer designed for catalog browsing on smaller screens.
+- **Search the catalog** - Browse Seattle public GIS datasets with search, sorting, and filters for type, category, owner, and tags.
+- **Load live layers** - Add supported ArcGIS services directly to the map, including feature, map, tiled map, image, vector tile, and group layer services where supported.
+- **Manage active layers** - Toggle visibility, adjust opacity, control visible scale ranges, zoom to layers, open source links, and remove layers.
+- **Inspect map features** - Click features to review important attributes first, with the full GIS attribute list still available.
+- **Explore attributes** - Open ArcGIS FeatureTable views in a floating desktop table panel, a fullscreen table workspace, or a mobile-friendly fullscreen table sheet.
+- **Use map tools** - Search places, switch basemaps, view the legend, return home, and use scale and compass widgets without leaving the map.
+- **Work across screen sizes** - Use a collapsible desktop sidebar or a mobile bottom drawer designed for catalog browsing on smaller screens.
 
 ---
 
@@ -26,8 +27,9 @@ The current iteration includes:
 - A custom Seattle GeoData Explorer logo, favicon set, app icons, and web manifest.
 - A dark navy/cyan dashboard interface built around the map.
 - A searchable catalog powered by Seattle public GIS metadata.
+- Lazy ArcGIS service inspection for layer choices, table choices, and service-type handling.
 - Active layer and active table management.
-- Feature details and project notes in the inspector panel.
+- A polished feature inspector and project notes panel.
 - A dedicated table workspace with maximize, restore, and close controls.
 - Mobile drawer behavior for the catalog and fullscreen mobile table viewing.
 - GitHub, LinkedIn, share, and project information controls in the sidebar header.
@@ -50,7 +52,8 @@ The current iteration includes:
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+
+- npm
 
 ### Development
 
@@ -99,9 +102,11 @@ This project demonstrates how a focused custom web app can make public GIS data 
 
 ---
 
-## Rapid Development
+## Development Workflow
 
 Seattle GeoData Explorer was developed through rapid iteration with support from GitHub Copilot, ChatGPT, and Codex. These tools helped accelerate UI exploration, refactoring, testing ideas, documentation, and implementation details while keeping the final product guided by GIS workflow judgment and human review.
+
+AI-assisted tools were used during parts of the design and development workflow, including ideation, interface copy refinement, and generation of the custom Seattle GeoData Explorer app icon package. Final implementation, review, and project direction were curated by the project author.
 
 ---
 

@@ -149,12 +149,10 @@ export function createLayerCard(meta, actions = {}, options = {}) {
         </div>
         <div class="layer-card__meta">${subtitle}</div>
       </div>
+      <div class="layer-card__buttons"></div>
       <button type="button" class="layer-card__menu-toggle" aria-expanded="false" aria-label="Show dataset details" title="Show dataset details">${renderIcon(faAngleDown)}</button>
     </div>
     <div class="layer-card__summary">${description}</div>
-    <div class="layer-card__actions">
-      <div class="layer-card__buttons"></div>
-    </div>
     <div class="layer-card__menu hidden">
       ${unsupportedBlock}
       ${layerChooser}
