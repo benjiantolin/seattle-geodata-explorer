@@ -176,6 +176,31 @@ select:focus-visible,
   display: none !important;
 }
 
+.app-title {
+  color: var(--text-primary);
+  font-weight: 850;
+  letter-spacing: 0;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.app-title--brand,
+.app-title--eyebrow,
+.app-title--rail,
+.app-title--inline {
+  color: #f7fbff;
+  background: linear-gradient(90deg, #f7fbff 0%, #bae6fd 38%, #58c7ff 78%, #7dd3fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 18px rgba(88,199,255,0.18);
+}
+
+.app-title--inline {
+  display: inline;
+  font-weight: 800;
+}
+
 .toast-region {
   position: fixed;
   right: 18px;
@@ -352,10 +377,7 @@ select:focus-visible,
 .sidebar__brand-title {
   margin: 0;
   font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: 0;
   line-height: 1.18;
-  color: var(--text-primary);
   overflow-wrap: normal;
   word-break: normal;
 }
@@ -2601,10 +2623,10 @@ select:focus-visible,
 }
 
 .splash-overlay__eyebrow {
-  font-size: 0.8rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #7dd3fc;
+  display: inline-block;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
   margin-bottom: 8px;
 }
 
@@ -2755,18 +2777,19 @@ select:focus-visible,
     justify-content: center;
     transform: translateX(-50%) rotate(180deg);
     writing-mode: vertical-rl;
-    color: rgba(240,249,255,0.82);
-    background: linear-gradient(180deg, #f8fbff 0%, #bae6fd 38%, #58c7ff 78%, #38bdf8 100%);
+    color: #f7fbff;
+    background: linear-gradient(180deg, #f7fbff 0%, #bae6fd 38%, #58c7ff 78%, #7dd3fc 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 0.84rem;
+    font-weight: 850;
+    letter-spacing: 0;
+    line-height: 1.12;
+    text-transform: none;
     white-space: nowrap;
     pointer-events: none;
-    text-shadow: 0 0 18px rgba(88,199,255,0.22);
+    text-shadow: 0 0 18px rgba(88,199,255,0.18);
   }
 }
 
@@ -2829,7 +2852,7 @@ select:focus-visible,
     height: min(calc(100dvh - 18px), 760px);
     min-height: 0;
     max-height: calc(100vh - 18px);
-    padding: 24px 14px 14px;
+    padding: 0 14px 14px;
     overflow-y: auto;
     overscroll-behavior: contain;
     border-right: none;
@@ -2843,24 +2866,14 @@ select:focus-visible,
 
   #sidebar::before {
     content: "";
-    position: sticky;
-    top: 0;
-    display: block;
-    width: 42px;
-    height: 4px;
-    margin: -13px auto 16px;
-    border-radius: 999px;
-    background: rgba(186,230,253,0.72);
-    box-shadow: 0 0 18px rgba(88,199,255,0.28);
-    cursor: pointer;
-    z-index: 1;
+    display: none;
   }
 
   #sidebar.sidebar--collapsed {
-    height: 78px;
-    min-height: 78px;
-    max-height: 78px;
-    padding: 22px 12px 10px;
+    height: 68px;
+    min-height: 68px;
+    max-height: 68px;
+    padding: 12px 12px 8px;
     overflow: hidden;
     transform: translateY(0);
     pointer-events: auto;
@@ -2874,7 +2887,12 @@ select:focus-visible,
 
   #sidebar.sidebar--collapsed::before {
     display: block;
-    margin-bottom: 12px;
+    width: 42px;
+    height: 4px;
+    margin: 0 auto 8px;
+    border-radius: 999px;
+    background: rgba(186,230,253,0.72);
+    box-shadow: 0 0 18px rgba(88,199,255,0.28);
   }
 
   #sidebar.sidebar--collapsed .sidebar__header {
@@ -2887,6 +2905,39 @@ select:focus-visible,
     background: transparent;
     box-shadow: none;
     backdrop-filter: none;
+  }
+
+  #sidebar.sidebar--collapsed .sidebar__header-main {
+    display: block;
+  }
+
+  #sidebar.sidebar--collapsed .sidebar__brand {
+    display: flex;
+    grid-template-columns: none;
+    justify-content: center;
+    text-align: center;
+  }
+
+  #sidebar.sidebar--collapsed .sidebar__brand-logo {
+    display: none;
+  }
+
+  #sidebar.sidebar--collapsed .sidebar__brand-copy {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  #sidebar.sidebar--collapsed .sidebar__brand-title {
+    max-width: min(100%, 320px);
+    font-size: clamp(1rem, 4.6vw, 1.16rem);
+    line-height: 1.05;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  #sidebar.sidebar--collapsed .sidebar__header::before {
+    display: none;
   }
 
   #sidebar.sidebar--collapsed .sidebar__brand-subtitle,
@@ -2905,12 +2956,36 @@ select:focus-visible,
     display: none !important;
   }
 
+  .sidebar__collapse-button {
+    display: none !important;
+  }
+
   .sidebar__header {
     top: 0;
+    z-index: 13;
     gap: 8px;
     width: 100%;
     margin: 0 0 10px;
-    padding: 0 0 12px;
+    padding: 22px 0 12px;
+    border-bottom: 1px solid rgba(125,211,252,0.16);
+    background:
+      radial-gradient(circle at 20% 0%, rgba(88,199,255,0.14), transparent 42%),
+      rgba(7, 13, 25, 0.99);
+    box-shadow: 0 14px 28px rgba(0,0,0,0.18);
+    backdrop-filter: blur(20px);
+  }
+
+  .sidebar__header::before {
+    content: "";
+    display: block;
+    justify-self: center;
+    width: 42px;
+    height: 4px;
+    margin: -11px 0 8px;
+    border-radius: 999px;
+    background: rgba(186,230,253,0.72);
+    box-shadow: 0 0 18px rgba(88,199,255,0.28);
+    cursor: pointer;
   }
 
   .sidebar__header-main {
@@ -2936,6 +3011,20 @@ select:focus-visible,
 
   .sidebar__header-meta {
     grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .sidebar__attribution {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar__project-links {
+    justify-self: end;
+    flex: 0 0 auto;
   }
 
   .sidebar__toolbar {
@@ -3091,6 +3180,11 @@ select:focus-visible,
     padding-right: 12px;
   }
 
+  #sidebar.sidebar--collapsed::before {
+    width: 42px;
+    margin: 0 auto 12px;
+  }
+
   .sidebar__brand-subtitle {
     max-width: none;
   }
@@ -3104,12 +3198,12 @@ select:focus-visible,
   }
 
   .sidebar__header-meta {
-    grid-template-columns: 1fr;
-    justify-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-items: stretch;
   }
 
   .sidebar__project-links {
-    justify-self: start;
+    justify-self: end;
   }
 
   .sidebar__tabs {

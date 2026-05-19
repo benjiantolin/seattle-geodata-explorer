@@ -199,7 +199,7 @@ header.innerHTML = `
     <div class="sidebar__brand">
       <img class="sidebar__brand-logo" src="${LOGO_URL}" alt="Seattle GeoData Explorer logo" width="36" height="36" />
       <div class="sidebar__brand-copy">
-        <div class="sidebar__brand-title">Seattle GeoData Explorer</div>
+        <div class="sidebar__brand-title app-title app-title--brand">Seattle GeoData Explorer</div>
       </div>
     </div>
     <div class="sidebar__toolbar" aria-label="Sidebar actions">
@@ -812,7 +812,7 @@ sidebarReopenButton.addEventListener("click", () => setSidebarCollapsed(false));
 sidebar.appendChild(sidebarReopenButton);
 
 const sidebarRailTitle = document.createElement("div");
-sidebarRailTitle.className = "sidebar__rail-title";
+sidebarRailTitle.className = "sidebar__rail-title app-title app-title--rail";
 sidebarRailTitle.textContent = "Seattle GeoData Explorer";
 sidebar.appendChild(sidebarRailTitle);
 
@@ -892,13 +892,8 @@ sidebar.addEventListener("click", (event) => {
     return;
   }
 
-  if (isSidebarCollapsed()) {
-    setSidebarCollapsed(false);
-    return;
-  }
-
   if (isMobileDrawerHandleClick(event)) {
-    setSidebarCollapsed(true);
+    setSidebarCollapsed(!isSidebarCollapsed());
   }
 });
 sidebarResizeHandle.addEventListener("pointerdown", startSidebarResize);
@@ -929,7 +924,7 @@ function openProjectNotes() {
   notes.className = "project-notes";
   notes.innerHTML = `
     <section class="project-notes__section">
-      <p class="project-notes__lede">Seattle GeoData Explorer is a map-first workspace for searching Seattle public GIS data, loading live layers, and inspecting features without leaving the map.</p>
+      <p class="project-notes__lede"><strong class="app-title app-title--inline">Seattle GeoData Explorer</strong> is a map-first workspace for searching Seattle public GIS data, loading live layers, and inspecting features without leaving the map.</p>
     </section>
     <section class="project-notes__section">
       <h4>Overview</h4>
@@ -945,7 +940,7 @@ function openProjectNotes() {
     </section>
     <section class="project-notes__section">
       <h4>Rapid Prototyping</h4>
-      <p>GitHub Copilot, ChatGPT, and Codex supported the development workflow by accelerating iteration, refining interface copy, testing implementation ideas, and generating the custom Seattle GeoData Explorer app icon package. Final project direction, review, and GIS workflow decisions were curated by the project author.</p>
+      <p>GitHub Copilot, ChatGPT, and Codex supported the development workflow by accelerating iteration, refining interface copy, testing implementation ideas, and generating the custom <strong class="app-title app-title--inline">Seattle GeoData Explorer</strong> app icon package. Final project direction, review, and GIS workflow decisions were curated by the project author.</p>
     </section>
     <section class="project-notes__section">
       <h4>What You Can Explore</h4>
@@ -959,7 +954,7 @@ function openProjectNotes() {
     </section>
     <section class="project-notes__section">
       <h4>Vision</h4>
-      <p>At its core, Seattle GeoData Explorer asks how civic GIS data could feel more immediate, visual, and useful during real exploration.</p>
+      <p>At its core, <strong class="app-title app-title--inline">Seattle GeoData Explorer</strong> asks how civic GIS data could feel more immediate, visual, and useful during real exploration.</p>
     </section>
   `;
 
