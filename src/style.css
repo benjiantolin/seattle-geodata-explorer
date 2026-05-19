@@ -2262,6 +2262,7 @@ select:focus-visible,
 }
 
 #inspector {
+  --inspector-padding-x: 18px;
   position: absolute;
   top: 0;
   right: 0;
@@ -2270,7 +2271,8 @@ select:focus-visible,
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 18px 18px;
+  overscroll-behavior: contain;
+  padding: 0 var(--inspector-padding-x) 18px;
   background:
     radial-gradient(circle at 24% 0%, rgba(88,199,255,0.15), transparent 34%),
     var(--panel-bg-strong);
@@ -2287,20 +2289,27 @@ select:focus-visible,
 .inspector__header {
   position: sticky;
   top: 0;
-  z-index: 3;
+  z-index: 12;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  width: calc(100% + 36px);
-  margin: 0 -18px 14px;
-  padding: 16px 18px 12px;
-  border-bottom: 1px solid rgba(125,211,252,0.14);
+  width: calc(100% + (var(--inspector-padding-x) * 2));
+  margin: 0 calc(var(--inspector-padding-x) * -1) 16px;
+  padding: 18px var(--inspector-padding-x) 13px;
+  border-bottom: 1px solid rgba(125,211,252,0.16);
   background:
-    radial-gradient(circle at 24% 0%, rgba(88,199,255,0.14), transparent 38%),
-    rgba(7, 13, 25, 0.98);
+    radial-gradient(circle at 22% 0%, rgba(88,199,255,0.16), transparent 40%),
+    #07101e;
   backdrop-filter: blur(18px);
-  box-shadow: 0 12px 26px rgba(0,0,0,0.2);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.22), 0 1px 0 rgba(255,255,255,0.03);
+}
+
+#inspector.inspector--project-notes .inspector__header {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(88,199,255,0.16), transparent 42%),
+    rgba(7, 13, 25, 1);
+  box-shadow: 0 16px 30px rgba(0,0,0,0.24), inset 0 -1px 0 rgba(88,199,255,0.06);
 }
 
 .inspector__heading {
@@ -2322,6 +2331,11 @@ select:focus-visible,
   font-size: 1.02rem;
   letter-spacing: 0.02em;
   overflow-wrap: anywhere;
+}
+
+#inspector.inspector--project-notes .inspector__heading h3 {
+  font-size: 1.08rem;
+  line-height: 1.12;
 }
 
 .inspector__close {
@@ -2811,7 +2825,6 @@ select:focus-visible,
 
   #inspector {
     width: clamp(360px, 36vw, 430px);
-    padding: 0 18px 18px;
   }
 
   .sidebar__table-panel {
@@ -3075,10 +3088,20 @@ select:focus-visible,
     right: 0;
     width: 100%;
     height: min(64vh, 620px);
-    padding: 0 18px 18px;
     border-left: none;
     border-top: 1px solid rgba(255,255,255,0.1);
     border-radius: 16px 16px 0 0;
+  }
+
+  .inspector__header {
+    padding-top: 16px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  #inspector.inspector--project-notes .inspector__header {
+    background:
+      radial-gradient(circle at 20% 0%, rgba(88,199,255,0.18), transparent 42%),
+      rgba(7, 13, 25, 1);
   }
 
   .sidebar__table-panel {

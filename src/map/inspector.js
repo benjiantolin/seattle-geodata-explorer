@@ -100,10 +100,12 @@ export function showInspector(
 ) {
   const panel = document.getElementById("inspector");
   panel.style.display = "block";
+  panel.classList.toggle("inspector--project-notes", heading === "Project Notes");
   const closeLabel =
     heading === "Feature Details" ? "Close feature details" : "Close panel";
   const entries = getRenderableEntries(attributes);
   const isFeaturePanel = heading === "Feature Details" || heading === "Attributes";
+  const eyebrow = isFeaturePanel && entries.length ? "Selected feature" : "";
   const titleMatch = findPriorityEntry(entries, TITLE_FIELDS);
   const summary = isFeaturePanel && entries.length
     ? buildFeatureSummary(entries, titleMatch)
@@ -112,7 +114,7 @@ export function showInspector(
   panel.innerHTML = `
     <div class="inspector__header">
       <div class="inspector__heading">
-        <div class="inspector__eyebrow">${isFeaturePanel && entries.length ? "Selected feature" : "Panel"}</div>
+        ${eyebrow ? `<div class="inspector__eyebrow">${escapeHtml(eyebrow)}</div>` : ""}
         <h3>${escapeHtml(heading)}</h3>
       </div>
       <button type="button" class="inspector__close" aria-label="${closeLabel}" title="${closeLabel}">${renderIcon(faCircleXmark)}</button>
