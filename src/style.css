@@ -2272,7 +2272,7 @@ select:focus-visible,
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  padding: 0 var(--inspector-padding-x) 18px;
+  padding: 0 0 18px;
   background:
     radial-gradient(circle at 24% 0%, rgba(88,199,255,0.15), transparent 34%),
     var(--panel-bg-strong);
@@ -2286,6 +2286,10 @@ select:focus-visible,
   max-width: 100%;
 }
 
+#inspector > :not(.inspector__header) {
+  margin-inline: var(--inspector-padding-x);
+}
+
 .inspector__header {
   position: sticky;
   top: 0;
@@ -2294,8 +2298,9 @@ select:focus-visible,
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  width: calc(100% + (var(--inspector-padding-x) * 2));
-  margin: 0 calc(var(--inspector-padding-x) * -1) 16px;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 16px;
   padding: 18px var(--inspector-padding-x) 13px;
   border-bottom: 1px solid rgba(125,211,252,0.16);
   background:
@@ -2784,19 +2789,20 @@ select:focus-visible,
   #sidebar.sidebar--collapsed .sidebar__rail-title {
     position: absolute;
     left: 50%;
-    top: 54px;
-    bottom: 14px;
-    display: flex;
+    top: 48%;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    transform: translateX(-50%) rotate(180deg);
-    writing-mode: vertical-rl;
+    width: max-content;
+    max-width: calc(100vh - 190px);
+    transform: translate(-50%, -50%) rotate(-90deg);
+    transform-origin: center;
     color: #f7fbff;
-    background: linear-gradient(180deg, #f7fbff 0%, #bae6fd 38%, #58c7ff 78%, #7dd3fc 100%);
+    background: linear-gradient(90deg, #f7fbff 0%, #bae6fd 38%, #58c7ff 78%, #7dd3fc 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 0.84rem;
+    font-size: 1.08rem;
     font-weight: 850;
     letter-spacing: 0;
     line-height: 1.12;
@@ -2804,6 +2810,22 @@ select:focus-visible,
     white-space: nowrap;
     pointer-events: none;
     text-shadow: 0 0 18px rgba(88,199,255,0.18);
+  }
+
+  #sidebar.sidebar--collapsed::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    width: 32px;
+    height: 32px;
+    transform: translateX(-50%);
+    border-radius: 10px;
+    background:
+      url("/assets/brand/seattle-geodata-explorer-icon-master.png") center / cover no-repeat,
+      #050b16;
+    box-shadow: 0 0 0 1px rgba(125,211,252,0.24), 0 0 20px rgba(88,199,255,0.16);
+    pointer-events: none;
   }
 }
 
@@ -2900,9 +2922,9 @@ select:focus-visible,
 
   #sidebar.sidebar--collapsed::before {
     display: block;
-    width: 42px;
+    width: 40px;
     height: 4px;
-    margin: 0 auto 8px;
+    margin: 0 auto 7px;
     border-radius: 999px;
     background: rgba(186,230,253,0.72);
     box-shadow: 0 0 18px rgba(88,199,255,0.28);
@@ -2922,30 +2944,45 @@ select:focus-visible,
 
   #sidebar.sidebar--collapsed .sidebar__header-main {
     display: block;
+    min-height: 32px;
   }
 
   #sidebar.sidebar--collapsed .sidebar__brand {
+    position: relative;
     display: flex;
-    grid-template-columns: none;
+    align-items: center;
     justify-content: center;
+    min-height: 32px;
+    padding: 0 44px;
     text-align: center;
   }
 
   #sidebar.sidebar--collapsed .sidebar__brand-logo {
-    display: none;
+    display: block;
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    transform: translateY(-50%);
+    border-radius: 9px;
+    box-shadow: 0 0 0 1px rgba(125,211,252,0.28), 0 0 16px rgba(88,199,255,0.16);
   }
 
   #sidebar.sidebar--collapsed .sidebar__brand-copy {
     display: flex;
     justify-content: center;
+    min-width: 0;
     width: 100%;
   }
 
   #sidebar.sidebar--collapsed .sidebar__brand-title {
-    max-width: min(100%, 320px);
-    font-size: clamp(1rem, 4.6vw, 1.16rem);
+    max-width: 100%;
+    font-size: clamp(0.98rem, 4.35vw, 1.12rem);
     line-height: 1.05;
     text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
@@ -3006,20 +3043,62 @@ select:focus-visible,
     align-items: center;
   }
 
+  #sidebar:not(.sidebar--collapsed) .sidebar__header-main {
+    position: relative;
+    display: block;
+    min-height: 32px;
+  }
+
   .sidebar__brand {
-    grid-template-columns: 34px minmax(0, 1fr);
-    gap: 9px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0 44px;
+    text-align: center;
+  }
+
+  #sidebar:not(.sidebar--collapsed) .sidebar__brand {
+    width: 100%;
+    padding: 0 72px 0 40px;
   }
 
   .sidebar__brand-logo {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    width: 28px;
+    height: 28px;
+    transform: translateY(-50%);
+    border-radius: 9px;
+    box-shadow: 0 0 0 1px rgba(125,211,252,0.28), 0 0 16px rgba(88,199,255,0.16);
+  }
+
+  .sidebar__brand-copy {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+  }
+
+  #sidebar:not(.sidebar--collapsed) .sidebar__brand-copy {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max-content;
+    max-width: calc(100% - 150px);
+    transform: translate(-50%, -50%);
   }
 
   .sidebar__brand-title {
-    font-size: 0.98rem;
-    line-height: 1.12;
+    max-width: 100%;
+    font-size: clamp(0.98rem, 4.35vw, 1.12rem);
+    line-height: 1.05;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .sidebar__header-meta {
@@ -3043,6 +3122,13 @@ select:focus-visible,
   .sidebar__toolbar {
     justify-content: flex-end;
     gap: 3px;
+  }
+
+  #sidebar:not(.sidebar--collapsed) .sidebar__toolbar {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .sidebar__toolbar-button,
